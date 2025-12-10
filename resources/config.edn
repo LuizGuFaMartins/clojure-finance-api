@@ -1,0 +1,6 @@
+{:server {:port #long #or [#env SERVER_PORT 8080]}
+ :db {:url #or [#env POSTGRES_URL "jdbc:postgresql://localhost:5432/finance_db?user=finance_user&password=finance_pass"]
+      :port #long #or [#env POSTGRES_PORT 5432]
+      :name #or [#env POSTGRES_DB "finance_db"]
+      :user #or [#env POSTGRES_USER "finance_user"]
+      :password #or [#env POSTGRES_PASSWORD "finance_pass"]}}
