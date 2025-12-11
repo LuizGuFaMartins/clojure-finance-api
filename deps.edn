@@ -27,8 +27,8 @@
 
  :aliases
  {
-  :dev-calva {:extra-paths ["dev"]
-        :extra-deps {org.clojure/tools.namespace {:mvn/version "1.4.5"}}}
+  ;:dev-calva {:extra-paths ["dev"]
+  ;      :extra-deps {org.clojure/tools.namespace {:mvn/version "1.4.5"}}}
 
   :dev {:main-opts ["-e" "(require,'user)"
                     "-e" "(in-ns,'user)"]}

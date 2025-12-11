@@ -1,7 +1,6 @@
 (ns clojure-finance-api.components.datasource-component
     (:require
       [com.stuartsierra.component :as component]
-      [next.jdbc :as jdbc]
       [clojure.string :as str])
     (:import
       (com.zaxxer.hikari HikariConfig HikariDataSource)

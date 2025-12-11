@@ -1,38 +1,35 @@
 (ns clojure-finance-api.components.pedestal-component
-  (:require
-   [com.stuartsierra.component :as component]
-   [io.pedestal.http :as http]
-   [io.pedestal.http.route :as route]))
+    (:require
+      [com.stuartsierra.component :as component]
+      [io.pedestal.http :as http]
+      [io.pedestal.http.route :as route]
+      [clojure-finance-api.routes.user-routes :as user-routes]
+      [clojure-finance-api.http.interceptors :as interceptors]))
 
-(defn respond-hello
-  [request]
-  {:status 200
-   :body "Hello world"})
-
-(def routes
+(def all-routes
   (route/expand-routes
-   #{["/greet" :get respond-hello :route-name :greet]}))
+    (set (concat
+           user-routes/routes))))
 
-(defrecord PedestalComponent
-           [config datasource]
-  component/Lifecycle
+(defrecord PedestalComponent [config datasource]
+           component/Lifecycle
 
-  (start [component]
-    (println "Starting PedestalComponent")
-    (let [server (-> {::http/routes routes
-                      ::http/type :jetty
-                      ::http/join? false
-                      ::http/port (-> config :server :port)}
-                     (http/create-server)
-                     (http/start))]
-      (assoc component :server server)))
+           (start [component]
+                  (println "Starting PedestalComponent")
+                  (let [server (-> {::http/routes all-routes
+                                    ::http/type :jetty
+                                    ::http/join? false
+                                    ::http/port (-> config :server :port)
+                                    ::http/components {:datasource datasource}}
+                                   http/create-server
+                                   http/start)]
+                       (assoc component :server server)))
 
-  (stop [component]
-    (println "Stopping PedestalComponent")
-    (when-let [server (:server component)]
-      (http/stop server))
-    (assoc component :server nil)))
+           (stop [component]
+                 (println "Stopping PedestalComponent")
+                 (when-let [server (:server component)]
+                           (http/stop server))
+                 (assoc component :server nil)))
 
-(defn new-pedestal-component
-  [config]
-  (map->PedestalComponent {:config config}))
+(defn new-pedestal-component [config]
+      (map->PedestalComponent {:config config}))
