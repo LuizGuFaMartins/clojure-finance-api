@@ -10,6 +10,13 @@
               (let [resp (user-services/respond-hello (:request ctx))]
                 (assoc ctx :response resp)))}))
 
+(def list-users-interceptor
+  (interceptor
+    {:name ::list-users
+     :enter (fn [ctx]
+              (let [resp (user-services/list-users ctx)]
+                (assoc ctx :response resp)))}))
+
 (def user-create-interceptor
   (interceptor
     {:name ::user-create

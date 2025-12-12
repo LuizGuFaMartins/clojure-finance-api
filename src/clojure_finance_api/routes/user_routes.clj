@@ -4,4 +4,7 @@
 
 (def routes
   #{["/greet" :get interceptors/say-hello-interceptor]
+    ["/users" :get interceptors/list-users-interceptor]
     ["/users" :post interceptors/user-create-interceptor]})
+
+

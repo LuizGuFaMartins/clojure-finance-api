@@ -3,6 +3,7 @@
       [com.stuartsierra.component :as component]
       [io.pedestal.http :as http]
       [io.pedestal.http.route :as route]
+      [io.pedestal.interceptor :refer [interceptor]]
       [clojure-finance-api.routes.user-routes :as user-routes]
       [clojure-finance-api.http.interceptors :as interceptors]))
 
@@ -10,6 +11,13 @@
   (route/expand-routes
     (set (concat
            user-routes/routes))))
+
+(defn inject-components
+  [components]
+  (interceptor
+    {:name ::inject-components
+     :enter (fn [ctx]
+              (assoc ctx :components components))}))
 
 (defrecord PedestalComponent [config datasource]
            component/Lifecycle
@@ -21,6 +29,9 @@
                                     ::http/join? false
                                     ::http/port (-> config :server :port)
                                     ::http/components {:datasource datasource}}
+                                   (http/default-interceptors)
+                                   (update ::http/interceptors concat
+                                           [(inject-components component)])
                                    http/create-server
                                    http/start)]
                        (assoc component :server server)))

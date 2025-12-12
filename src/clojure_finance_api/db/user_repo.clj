@@ -1,6 +1,9 @@
 (ns clojure-finance-api.db.user-repo
     (:require [next.jdbc :as jdbc]))
 
+(defn list-users [ds]
+  (jdbc/execute! ds ["SELECT * FROM users"]))
+
 (defn create-user! [ds user]
       (jdbc/execute-one! ds
                          ["insert into users (id, name, email, password_hash)
