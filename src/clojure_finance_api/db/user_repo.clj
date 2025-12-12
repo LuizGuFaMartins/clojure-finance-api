@@ -1,15 +1,26 @@
 (ns clojure-finance-api.db.user-repo
-    (:require [next.jdbc :as jdbc]))
+    (:require [next.jdbc :as jdbc]
+              [next.jdbc.result-set :as rs]
+              [honey.sql :as sql]))
+
+(def builder {:builder-fn rs/as-unqualified-kebab-maps})
 
 (defn list-users [ds]
-  (jdbc/execute! ds ["SELECT * FROM users"]))
-
-(defn create-user! [ds user]
-      (jdbc/execute-one! ds
-                         ["insert into users (id, name, email, password_hash)
-      values (?, ?, ?, ?)"
-                          (:id user) (:name user) (:email user) (:password-hash user)]))
+  (jdbc/execute! ds (-> {:select :* :from :users} (sql/format))))
 
 (defn find-user-by-id [ds id]
-      (jdbc/execute-one! ds
-                         ["select * from users where id = ?" id]))
+  (jdbc/execute-one!
+    ds
+    (sql/format
+      {:select [:*]
+       :from   :users
+       :where  [:= :id id]})))
+
+(defn create-user! [ds user]
+  (println "BODY: " user)
+  (jdbc/execute-one!
+    ds
+    (sql/format
+      {:insert-into :users
+       :values [(select-keys user [:id :name :email :password])]})
+        builder))

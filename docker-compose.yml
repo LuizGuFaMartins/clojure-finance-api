@@ -15,24 +15,8 @@ services:
       - "POSTGRES_INITDB_ARGS='--encoding=UTF-8'"
     ports:
       - "5432:5432"
-#    volumes:
-#      - postgres_data:/var/lib/postgresql/data
-
-  # flyway:
-  #   image: flyway/flyway:10-alpine
-  #   container_name: finance-flyway
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #   env_file:
-  #     - .env
-  #   command: >
-  #     -url=${FLYWAY_URL}
-  #     -user=${FLYWAY_USER}
-  #     -password=${FLYWAY_PASSWORD}
-  #     migrate
-  #   volumes:
-  #     - ./resources/db/migration:/flyway/sql
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
 
 #  app:
 #    build:
@@ -54,5 +38,5 @@ services:
 #      - postgres
       # - flyway
 
-#volumes:
-#  postgres_data:
+volumes:
+  postgres_data:

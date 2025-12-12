@@ -1,10 +1,11 @@
 (ns clojure-finance-api.routes.user-routes
   (:require
-    [clojure-finance-api.http.interceptors :as interceptors]))
+    [clojure-finance-api.http.user_interceptors :as interceptors]
+    [io.pedestal.http.body-params :as body-params]))
 
 (def routes
-  #{["/greet" :get interceptors/say-hello-interceptor]
+  #{["/greet" :get (fn [_] {:status 200 :body "Hello world"}) :route-name :greet]
     ["/users" :get interceptors/list-users-interceptor]
-    ["/users" :post interceptors/user-create-interceptor]})
+    ["/users" :post [(body-params/body-params) interceptors/user-create-interceptor]]})
 
 

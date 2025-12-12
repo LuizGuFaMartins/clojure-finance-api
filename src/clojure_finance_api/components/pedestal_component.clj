@@ -5,7 +5,7 @@
       [io.pedestal.http.route :as route]
       [io.pedestal.interceptor :refer [interceptor]]
       [clojure-finance-api.routes.user-routes :as user-routes]
-      [clojure-finance-api.http.interceptors :as interceptors]))
+      [io.pedestal.http.content-negotiation :as content-negotiation]))
 
 (def all-routes
   (route/expand-routes
@@ -19,6 +19,9 @@
      :enter (fn [ctx]
               (assoc ctx :components components))}))
 
+(def content-negotiation-interceptor
+    (content-negotiation/negotiate-content ["application/json"]))
+
 (defrecord PedestalComponent [config datasource]
            component/Lifecycle
 
@@ -31,7 +34,7 @@
                                     ::http/components {:datasource datasource}}
                                    (http/default-interceptors)
                                    (update ::http/interceptors concat
-                                           [(inject-components component)])
+                                           [(inject-components component) content-negotiation-interceptor])
                                    http/create-server
                                    http/start)]
                        (assoc component :server server)))
