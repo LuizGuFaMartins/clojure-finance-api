@@ -6,6 +6,7 @@
 (def routes
   #{["/greet" :get (fn [_] {:status 200 :body "Hello world"}) :route-name :greet]
     ["/users" :get interceptors/list-users-interceptor]
+    ["/users/:id" :get [interceptors/user-find-by-id-interceptor]]
     ["/users" :post [(body-params/body-params) interceptors/user-create-interceptor]]})
 
 

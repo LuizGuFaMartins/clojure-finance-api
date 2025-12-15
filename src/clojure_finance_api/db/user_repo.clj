@@ -6,7 +6,10 @@
 (def builder {:builder-fn rs/as-unqualified-kebab-maps})
 
 (defn list-users [ds]
-  (jdbc/execute! ds (-> {:select :* :from :users} (sql/format))))
+  (jdbc/execute!
+    ds
+    (sql/format {:select :* :from :users})
+    builder))
 
 (defn find-user-by-id [ds id]
   (jdbc/execute-one!
@@ -14,10 +17,9 @@
     (sql/format
       {:select [:*]
        :from   :users
-       :where  [:= :id id]})))
+       :where  [:= :id id]}) builder))
 
 (defn create-user! [ds user]
-  (println "BODY: " user)
   (jdbc/execute-one!
     ds
     (sql/format
