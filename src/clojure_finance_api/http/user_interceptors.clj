@@ -63,3 +63,26 @@
 
            (let [user (user-service/create-user ctx body)]
              (assoc ctx :response (response 201 user))))))}))
+
+(def user-update-interceptor
+  (interceptor
+    {:name ::user-update
+     :enter
+     (fn [ctx]
+       (let [id   (some-> ctx :request :path-params :id parse-uuid)
+             body (get-in ctx [:request :json-params])]
+         (if-let [user (user-service/update-user ctx id body)]
+           (assoc ctx :response (response 200 user))
+           (assoc ctx :response
+                      (response 404 {:error "User not found"})))))}))
+
+(def user-delete-interceptor
+  (interceptor
+    {:name ::user-delete
+     :enter
+     (fn [ctx]
+       (let [id (some-> ctx :request :path-params :id parse-uuid)]
+         (if (user-service/delete-user ctx id)
+           (assoc ctx :response (response 204))
+           (assoc ctx :response
+                      (response 404 {:error "User not found"})))))}))

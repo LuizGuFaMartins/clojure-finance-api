@@ -3,13 +3,9 @@ CREATE TABLE users (
   name TEXT NULL,
   email TEXT UNIQUE NULL,
   password TEXT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT now(),
-  active BOOLEAN NOT NULL DEFAULT TRUE
-);
-
-CREATE TABLE user_balance (
-  user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  active BOOLEAN NOT NULL DEFAULT TRUE,
   balance NUMERIC(12,2) NOT NULL DEFAULT 0,
+  created_at TIMESTAMP NOT NULL DEFAULT now(),
   updated_at TIMESTAMP NOT NULL DEFAULT now()
 );
 

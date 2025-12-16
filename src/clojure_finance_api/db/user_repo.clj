@@ -26,3 +26,22 @@
       {:insert-into :users
        :values [(select-keys user [:id :name :email :password])]})
         builder))
+
+(defn update-user! [ds id data]
+  (jdbc/execute-one!
+    ds
+    (sql/format
+      {:update :users
+       :set    (assoc data :updated-at :%now)
+       :where  [:= :id id]
+       :returning [:id :name :email :active :balance :created-at :updated-at]})
+    builder))
+
+(defn delete-user! [ds id]
+  (jdbc/execute-one!
+    ds
+    (sql/format
+      {:delete-from :users
+       :where [:= :id id]
+       :returning [:id]})
+    builder))
