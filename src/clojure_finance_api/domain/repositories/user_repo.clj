@@ -1,4 +1,4 @@
-(ns clojure-finance-api.db.user-repo
+(ns clojure-finance-api.domain.repositories.user-repo
     (:require [next.jdbc :as jdbc]
               [next.jdbc.result-set :as rs]
               [honey.sql :as sql]))
@@ -18,6 +18,14 @@
       {:select [:*]
        :from   :users
        :where  [:= :id id]}) builder))
+
+(defn find-user-by-email [ds email]
+  (jdbc/execute-one!
+    ds
+    (sql/format
+      {:select [:*]
+       :from   :users
+       :where  [:= :email email]}) builder))
 
 (defn create-user! [ds user]
   (jdbc/execute-one!

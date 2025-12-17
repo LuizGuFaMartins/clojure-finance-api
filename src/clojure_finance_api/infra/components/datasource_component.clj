@@ -1,4 +1,4 @@
-(ns clojure-finance-api.components.datasource-component
+(ns clojure-finance-api.infra.components.datasource-component
     (:require
       [com.stuartsierra.component :as component]
       [clojure.string :as str])

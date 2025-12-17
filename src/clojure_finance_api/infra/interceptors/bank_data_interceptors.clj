@@ -1,28 +1,13 @@
-(ns clojure-finance-api.http.bank_data_interceptors
+(ns clojure-finance-api.infra.interceptors.bank_data_interceptors
   (:require
     [malli.core :as m]
     [malli.error :as me]
     [malli.transform :as mt]
     [cheshire.core :as json]
     [io.pedestal.interceptor :refer [interceptor]]
-    [clojure-finance-api.services.bank_data_service :as bank-data-service]))
+    [clojure-finance-api.domain.schemas.bank-data-schemas :as schemas]
+    [clojure-finance-api.domain.services.bank_data_service :as bank-data-service]))
 
-
-;; Schemas
-(def BankDataCreateSchema
-  [:map
-   [:user-id uuid?]
-   [:card-holder string?]
-   [:card-last4 [:re #"\d{4}"]]
-   [:card-hash string?]
-   [:card-brand string?]
-   [:expires-month [:int {:min 1 :max 12}]]
-   [:expires-year [:int {:min 2024}]]])
-
-(def BankDataIdSchema
-  [:uuid])
-
-;; Interceptors
 (defn response
   ([status]
    (response status nil))
@@ -53,7 +38,7 @@
        (let [id-str (get-in ctx [:request :path-params :id])
              id     (parse-uuid id-str)]
 
-         (if-not (m/validate BankDataIdSchema id)
+         (if-not (m/validate schemas/BankDataIdSchema id)
            (assoc ctx :response (response 400 {:error "Invalid bank-data id"}))
 
            (if-let [bank-data (bank-data-service/find-bank-data-by-id ctx id)]
@@ -68,7 +53,7 @@
        (let [id-str (get-in ctx [:request :path-params :user-id])
              id     (parse-uuid id-str)]
 
-         (if-not (m/validate BankDataIdSchema id)
+         (if-not (m/validate schemas/BankDataIdSchema id)
            (assoc ctx :response (response 400 {:error "Invalid user id"}))
 
            (if-let [bank-data (bank-data-service/find-bank-data-by-user-id ctx id)]
@@ -81,16 +66,16 @@
      :enter
      (fn [ctx]
        (let [raw-body (get-in ctx [:request :json-params])
-             body     (m/decode BankDataCreateSchema
+             body     (m/decode schemas/BankDataCreateSchema
                                 raw-body
                                 json-transformer)]
 
-         (if-not (m/validate BankDataCreateSchema body)
+         (if-not (m/validate schemas/BankDataCreateSchema body)
            (assoc ctx :response
                       (response 400
                                 {:error "Invalid bank-data payload"
                                  :details (me/humanize
-                                            (m/explain BankDataCreateSchema body))}))
+                                            (m/explain schemas/BankDataCreateSchema body))}))
 
            (let [bank-data (bank-data-service/create-bank-data ctx body)]
              (assoc ctx :response

@@ -1,7 +1,7 @@
 (ns clojure-finance-api.core
   (:require
-    [clojure-finance-api.components.datasource-component :as datasource-component]
-    [clojure-finance-api.components.pedestal-component :as pedestal-component]
+    [clojure-finance-api.infra.components.datasource-component :as datasource-component]
+    [clojure-finance-api.infra.components.pedestal-component :as pedestal-component]
     [clojure-finance-api.config :as config]
     [com.stuartsierra.component :as component]))
 

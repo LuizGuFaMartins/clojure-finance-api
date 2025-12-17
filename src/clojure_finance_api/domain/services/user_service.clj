@@ -1,6 +1,6 @@
-(ns clojure-finance-api.services.user-service
+(ns clojure-finance-api.domain.services.user-service
     (:require
-      [clojure-finance-api.db.user-repo :as repo]))
+      [clojure-finance-api.domain.repositories.user-repo :as repo]))
 
 (defn list-users
   [{{:keys [datasource]} :components}]
@@ -9,6 +9,10 @@
 (defn find-user-by-id
   [{{:keys [datasource]} :components} id]
   (repo/find-user-by-id datasource id))
+
+(defn find-user-by-email
+  [{{:keys [datasource]} :components} email]
+  (repo/find-user-by-email datasource email))
 
 (defn create-user
   [{{:keys [datasource]} :components} body]

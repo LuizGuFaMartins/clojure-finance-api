@@ -1,4 +1,4 @@
-(ns clojure-finance-api.db.bank_data_repo
+(ns clojure-finance-api.domain.repositories.bank_data_repo
     (:require [next.jdbc :as jdbc]
               [next.jdbc.result-set :as rs]
               [honey.sql :as sql]))

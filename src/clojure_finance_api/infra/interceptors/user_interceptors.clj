@@ -1,23 +1,12 @@
-(ns clojure-finance-api.http.user_interceptors
+(ns clojure-finance-api.infra.interceptors.user_interceptors
   (:require
     [malli.core :as m]
+    [malli.error :as me]
     [cheshire.core :as json]
     [io.pedestal.interceptor :refer [interceptor]]
-    [clojure-finance-api.services.user-service :as user-service]))
+    [clojure-finance-api.domain.schemas.user-schemas :as schemas]
+    [clojure-finance-api.domain.services.user-service :as user-service]))
 
-
-;; Schemas
-(def UserCreateSchema
-  [:map
-   [:name string?]
-   [:email string?]
-   [:password string?]])
-
-(def UserIdSchema
-  [:uuid])
-
-
-;; Interceptors
 (defn response
   ([status]
    (response status nil))
@@ -43,7 +32,7 @@
        (let [id-str (get-in ctx [:request :path-params :id])
              id     (parse-uuid id-str)]
 
-         (if-not (m/validate UserIdSchema id)
+         (if-not (m/validate schemas/UserIdSchema id)
            (assoc ctx :response (response 400 {:error "Invalid user id"}))
 
            (if-let [user (user-service/find-user-by-id ctx id)]
@@ -57,9 +46,9 @@
      (fn [ctx]
        (let [body (get-in ctx [:request :json-params])]
 
-         (if-not (m/validate UserCreateSchema body)
+         (if-not (m/validate schemas/UserCreateSchema body)
            (assoc ctx :response (response 400 {:error "Invalid user payload"
-                                               :details (m/explain UserCreateSchema body)}))
+                                               :details (me/humanize (m/explain schemas/UserCreateSchema body))}))
 
            (let [user (user-service/create-user ctx body)]
              (assoc ctx :response (response 201 user))))))}))

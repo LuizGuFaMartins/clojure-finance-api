@@ -1,6 +1,6 @@
-(ns clojure-finance-api.services.bank_data_service
+(ns clojure-finance-api.domain.services.bank_data_service
   (:require
-    [clojure-finance-api.db.bank_data_repo :as repo]))
+    [clojure-finance-api.domain.repositories.bank_data_repo :as repo]))
 
 (defn list-bank-data
   [{{:keys [datasource]} :components}]
