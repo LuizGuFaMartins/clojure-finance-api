@@ -1,34 +1,36 @@
-(ns clojure-finance-api.infra.interceptors.bank_data_interceptors
+(ns clojure-finance-api.infra.interceptors.bank-data-interceptors
   (:require
     [malli.core :as m]
     [malli.error :as me]
     [malli.transform :as mt]
-    [cheshire.core :as json]
     [io.pedestal.interceptor :refer [interceptor]]
+    [clojure-finance-api.infra.http.response :refer [response response-error]]
     [clojure-finance-api.domain.schemas.bank-data-schemas :as schemas]
-    [clojure-finance-api.domain.services.bank_data_service :as bank-data-service]))
+    [clojure-finance-api.domain.services.bank-data-service :as bank-data-service]))
 
-(defn response
-  ([status]
-   (response status nil))
-  ([status body]
-   (merge
-     {:status status
-      :headers {"Content-Type" "application/json"}}
-     (when body {:body (json/encode body)}))))
+(defn error-type-handler [result]
+  (let [error-type (:error result)]
+    (case error-type
+      :bank-data-not-found (response-error 404 "Bank data not found")
+      :user-not-found      (response-error 404 "User not found")
+      :database-error      (response-error 500 "Internal database error")
+      :invalid-id          (response-error 400 "Invalid UUID format")
+      (response-error 500 "Internal Server Error"))))
 
 (def json-transformer
-  (mt/transformer
-    mt/string-transformer
-    mt/json-transformer))
+  (mt/transformer mt/string-transformer mt/json-transformer))
 
 (def list-bank-data-interceptor
   (interceptor
     {:name ::list-bank-data
      :enter
      (fn [ctx]
-       (let [bank-data (bank-data-service/list-bank-data ctx)]
-         (assoc ctx :response (response 200 bank-data))))}))
+       (let [result (bank-data-service/list-bank-data ctx)]
+         (assoc ctx :response
+                    (cond
+                      (:success result) (response 200 (:success result))
+                      (:error result)   (error-type-handler result)
+                      :else             (response-error 500 "Unknown error")))))}))
 
 (def bank-data-find-by-id-interceptor
   (interceptor
@@ -36,14 +38,18 @@
      :enter
      (fn [ctx]
        (let [id-str (get-in ctx [:request :path-params :id])
-             id     (parse-uuid id-str)]
+             id     (some-> id-str parse-uuid)]
+         (cond
+           (nil? id)
+           (assoc ctx :response (response-error 400 "Invalid bank-data id format"))
 
-         (if-not (m/validate schemas/BankDataIdSchema id)
-           (assoc ctx :response (response 400 {:error "Invalid bank-data id"}))
-
-           (if-let [bank-data (bank-data-service/find-bank-data-by-id ctx id)]
-             (assoc ctx :response (response 200 bank-data))
-             (assoc ctx :response (response 404 {:error "BankData not found"}))))))}))
+           :else
+           (let [result (bank-data-service/find-bank-data-by-id ctx id)]
+             (assoc ctx :response
+                        (cond
+                          (:success result) (response 200 (:success result))
+                          (:error result)   (error-type-handler result)
+                          :else             (response-error 500 "Unknown error")))))))}))
 
 (def bank-data-find-by-user-id-interceptor
   (interceptor
@@ -51,14 +57,18 @@
      :enter
      (fn [ctx]
        (let [id-str (get-in ctx [:request :path-params :user-id])
-             id     (parse-uuid id-str)]
+             id     (some-> id-str parse-uuid)]
+         (cond
+           (nil? id)
+           (assoc ctx :response (response-error 400 "Invalid user id format"))
 
-         (if-not (m/validate schemas/BankDataIdSchema id)
-           (assoc ctx :response (response 400 {:error "Invalid user id"}))
-
-           (if-let [bank-data (bank-data-service/find-bank-data-by-user-id ctx id)]
-             (assoc ctx :response (response 200 bank-data))
-             (assoc ctx :response (response 404 {:error "BankData not found"}))))))}))
+           :else
+           (let [result (bank-data-service/find-bank-data-by-user-id ctx id)]
+             (assoc ctx :response
+                        (cond
+                          (:success result) (response 200 (:success result))
+                          (:error result)   (error-type-handler result)
+                          :else             (response-error 500 "Unknown error")))))))}))
 
 (def bank-data-create-interceptor
   (interceptor
@@ -66,40 +76,56 @@
      :enter
      (fn [ctx]
        (let [raw-body (get-in ctx [:request :json-params])
-             body     (m/decode schemas/BankDataCreateSchema
-                                raw-body
-                                json-transformer)]
-
+             body     (m/decode schemas/BankDataCreateSchema raw-body json-transformer)]
          (if-not (m/validate schemas/BankDataCreateSchema body)
            (assoc ctx :response
-                      (response 400
-                                {:error "Invalid bank-data payload"
-                                 :details (me/humanize
-                                            (m/explain schemas/BankDataCreateSchema body))}))
-
-           (let [bank-data (bank-data-service/create-bank-data ctx body)]
+                      (response-error 400 "Invalid bank-data payload"
+                                      (me/humanize (m/explain schemas/BankDataCreateSchema body))))
+           (let [result (bank-data-service/create-bank-data ctx body)]
              (assoc ctx :response
-                        (response 201 bank-data))))))}))
+                        (cond
+                          (:success result) (response 201 (:success result))
+                          (:error result)   (error-type-handler result)
+                          :else             (response-error 500 "Unknown error")))))))}))
 
 (def bank-data-update-interceptor
   (interceptor
     {:name ::bank-data-update
      :enter
      (fn [ctx]
-       (let [id   (some-> ctx :request :path-params :id parse-uuid)
-             body (get-in ctx [:request :json-params])]
-         (if-let [bank-data (bank-data-service/update-bank-data ctx id body)]
-           (assoc ctx :response (response 200 bank-data))
+       (let [id-str   (get-in ctx [:request :path-params :id])
+             id       (some-> id-str parse-uuid)
+             raw-body (get-in ctx [:request :json-params])
+             body     (m/decode schemas/BankDataCreateSchema raw-body json-transformer)]
+         (cond
+           (nil? id)
+           (assoc ctx :response (response-error 400 "Invalid bank-data id"))
+
+           (not (m/validate schemas/BankDataCreateSchema body))
            (assoc ctx :response
-                      (response 404 {:error "BankData not found"})))))}))
+                      (response-error 400 "Invalid update payload"
+                                      (me/humanize (m/explain schemas/BankDataCreateSchema body))))
+
+           :else
+           (let [result (bank-data-service/update-bank-data ctx id body)]
+             (assoc ctx :response
+                        (cond
+                          (:success result) (response 200 (:success result))
+                          (:error result)   (error-type-handler result)
+                          :else             (response-error 500 "Unknown error")))))))}))
 
 (def bank-data-delete-interceptor
   (interceptor
     {:name ::bank-data-delete
      :enter
      (fn [ctx]
-       (let [id (some-> ctx :request :path-params :id parse-uuid)]
-         (if (bank-data-service/delete-bank-data ctx id)
-           (assoc ctx :response (response 204))
-           (assoc ctx :response
-                      (response 404 {:error "Bank data not found"})))))}))
+       (let [id-str (get-in ctx [:request :path-params :id])
+             id     (some-> id-str parse-uuid)]
+         (if-not id
+           (assoc ctx :response (response-error 400 "Invalid bank-data id"))
+           (let [result (bank-data-service/delete-bank-data ctx id)]
+             (assoc ctx :response
+                        (cond
+                          (:success result) (response 204)
+                          (:error result)   (error-type-handler result)
+                          :else             (response-error 500 "Unknown error")))))))}))

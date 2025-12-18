@@ -2,27 +2,17 @@
   (:require
     [malli.core :as m]
     [malli.error :as me]
-    [cheshire.core :as json]
     [io.pedestal.interceptor :refer [interceptor]]
+    [clojure-finance-api.infra.http.response :refer [response response-error]]
     [clojure-finance-api.domain.schemas.login-schemas :as schemas]
-    [clojure-finance-api.infra.auth.auth :as auth]
-    [clojure-finance-api.domain.services.user-service :as user-service]
     [clojure-finance-api.domain.services.login-service :as login-service]))
 
-(defn response
-  ([status]
-   (response status nil))
-  ([status body]
-   (merge
-     {:status status
-      :headers {"Content-Type" "application/json"}}
-     (when body {:body (json/encode body)}))))
-
-(defn response-error
-  ([status message]
-   (response status {:error message}))
-  ([status message details]
-   (response status {:error message :details details})))
+(defn error-type-handler [result]
+  (let [error-type (:error result)]
+     (case error-type
+       :user-not-found (response-error 404 "User not found")
+       :invalid-password (response-error 401 "Invalid credentials")
+       (response-error 500 "Internal Server Error"))))
 
 (def login
   (interceptor
@@ -38,9 +28,5 @@
              (assoc ctx :response
                         (case (some-> result keys first)
                           :success (response 200 (:success result))
-                          :error   (let [error-type (:error result)]
-                                     (case error-type
-                                       :user-not-found (response-error 404 "User not found")
-                                       :invalid-password (response-error 401 "Invalid credentials")
-                                       (response-error 500 "Internal Server Error")))
+                          :error (error-type-handler result)
                           (response-error 500 "Unknown error")))))))}))

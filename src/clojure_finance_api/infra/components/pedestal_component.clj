@@ -4,16 +4,8 @@
       [io.pedestal.http :as http]
       [io.pedestal.http.route :as route]
       [clojure-finance-api.shared.global-interceptors :as interceptors]
-      [clojure-finance-api.infra.routes.login-routes :as login-routes]
-      [clojure-finance-api.infra.routes.user-routes :as user-routes]
-      [clojure-finance-api.infra.routes.bank-data-routes :as bank-data-routes]))
+      [clojure-finance-api.infra.http.routes :refer [routes]]))
 
-(def all-routes
-  (route/expand-routes
-    (set (concat
-           login-routes/routes
-           user-routes/routes
-           bank-data-routes/routes))))
 
 (defrecord PedestalComponent [config datasource]
            component/Lifecycle
@@ -22,7 +14,7 @@
                   (println "Starting PedestalComponent")
                   (let [server (-> {
                                     ::http/router :linear-search
-                                    ::http/routes all-routes
+                                    ::http/routes routes
                                     ::http/type :jetty
                                     ::http/join? false
                                     ::http/port (-> config :server :port)
@@ -34,7 +26,8 @@
                                             interceptors/cors-interceptor])
                                    http/create-server
                                    http/start)]
-                       (assoc component :server server)))
+                       (assoc component :server server))
+             )
 
            (stop [component]
                  (println "Stopping PedestalComponent")

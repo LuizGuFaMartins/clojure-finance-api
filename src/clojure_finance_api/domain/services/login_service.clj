@@ -1,6 +1,6 @@
 (ns clojure-finance-api.domain.services.login-service
   (:require
-    [clojure-finance-api.infra.auth.auth :as auth]
+    [clojure-finance-api.infra.auth.jwt :as auth]
     [clojure-finance-api.domain.services.user-service :as user-service]))
 
 (defn authenticate
@@ -10,7 +10,7 @@
       (nil? user)
       {:error :user-not-found}
 
-      (not (= password (:password user)))
+      (not (= password (:password (:success user))))
       {:error :invalid-password}
 
       :else
