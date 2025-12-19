@@ -1,48 +1,66 @@
 (ns clojure-finance-api.domain.repositories.user-repo
-    (:require [next.jdbc :as jdbc]
-              [next.jdbc.result-set :as rs]
-              [honey.sql :as sql]))
+  (:require [next.jdbc :as jdbc]
+            [next.jdbc.result-set :as rs]
+            [honey.sql :as sql]))
 
 (def builder {:builder-fn rs/as-unqualified-kebab-maps})
+
+(def base-user-query
+  {:select [:u.* [:r.name :role]]
+   :from [[:users :u]]
+   :join [[:user_roles :ur] [:= :u.id :ur.user_id]
+          [:roles :r] [:= :ur.role_id :r.id]]})
 
 (defn list-users [ds]
   (jdbc/execute!
     ds
-    (sql/format {:select :* :from :users})
+    (sql/format base-user-query)
     builder))
 
 (defn find-user-by-id [ds id]
   (jdbc/execute-one!
     ds
     (sql/format
-      {:select [:*]
-       :from   :users
-       :where  [:= :id id]}) builder))
+      (merge base-user-query
+             {:where [:= :u.id id]}))
+    builder))
 
 (defn find-user-by-email [ds email]
   (jdbc/execute-one!
     ds
     (sql/format
-      {:select [:*]
-       :from   :users
-       :where  [:= :email email]}) builder))
+      (merge base-user-query
+             {:where [:= :u.email email]}))
+    builder))
 
 (defn create-user! [ds user]
-  (jdbc/execute-one!
-    ds
-    (sql/format
-      {:insert-into :users
-       :values [(select-keys user [:id :name :email :password])]})
-        builder))
+   (let [inserted-user (jdbc/execute-one!
+                         ds
+                         (sql/format
+                           {:insert-into :users
+                            :values [(select-keys user [:id :name :email :password :cpf :phone])]
+                            :returning [:*]})
+                         builder)
+         role-id (jdbc/execute-one!
+                   ds
+                   (sql/format {:select [:id] :from :roles :where [:= :name (or (:role user) "customer")]})
+                   builder)]
+     (jdbc/execute!
+       ds
+       (sql/format
+         {:insert-into :user_roles
+          :values [{:user_id (:id inserted-user) :role_id (:id role-id)}]})
+       builder)
+     (assoc inserted-user :role (or (:role user) "customer"))))
 
 (defn update-user! [ds id data]
   (jdbc/execute-one!
     ds
     (sql/format
       {:update :users
-       :set    (assoc data :updated-at :%now)
+       :set    (assoc (dissoc data :role) :updated-at :%now)
        :where  [:= :id id]
-       :returning [:id :name :email :active :balance :created-at :updated-at]})
+       :returning [:*]})
     builder))
 
 (defn delete-user! [ds id]

@@ -10,7 +10,7 @@
 
 (defn create-token [user]
   (let [payload {:id (:id user)
-                 :role (:role user) ;; admin ou user
+                 :role (:role user)
                  :exp (.plus (java.time.Instant/now) 1 java.time.temporal.ChronoUnit/HOURS)}]
     (jwt/sign payload secret)))
 
@@ -26,7 +26,6 @@
                                         :headers {"Content-Type" "application/json"}
                                         :body {:error "Token missing or malformed"}})
                   (try
-                    ;; O unsign valida assinatura E expiração automaticamente
                     (let [claims (jwt/unsign token secret)]
                       (assoc-in ctx [:request :identity] claims))
                     (catch Exception e

@@ -1,6 +1,7 @@
 (ns clojure-finance-api.shared.global-interceptors
   (:require
     [io.pedestal.interceptor :refer [interceptor]]
+    [io.pedestal.http.cors :as cors]
     [io.pedestal.http.content-negotiation :as content-negotiation]))
 
 (defn inject-components
@@ -14,13 +15,4 @@
   (content-negotiation/negotiate-content ["application/json"]))
 
 (def cors-interceptor
-  (interceptor
-    {:name ::cors
-     :leave
-     (fn [context]
-       (update context :response
-               merge
-               {:headers
-                {"Access-Control-Allow-Origin" "http://localhost:3000"
-                 "Access-Control-Allow-Methods" "GET, POST, PUT, DELETE, OPTIONS"
-                 "Access-Control-Allow-Headers" "Content-Type, Authorization"}}))}))
+  (cors/allow-origin ["http://localhost:3000"]))

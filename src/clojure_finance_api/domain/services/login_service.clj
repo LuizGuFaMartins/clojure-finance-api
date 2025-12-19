@@ -14,5 +14,5 @@
       {:error :invalid-password}
 
       :else
-      (let [token (auth/create-token user)]
-        {:success {:access-token token :user (dissoc user :password)}}))))
+      (let [token (auth/create-token (:success user))]
+        {:success {:access-token token :user (-> user (:success) (dissoc :password))}}))))

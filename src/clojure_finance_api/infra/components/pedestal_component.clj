@@ -2,10 +2,8 @@
     (:require
       [com.stuartsierra.component :as component]
       [io.pedestal.http :as http]
-      [io.pedestal.http.route :as route]
       [clojure-finance-api.shared.global-interceptors :as interceptors]
       [clojure-finance-api.infra.http.routes :refer [routes]]))
-
 
 (defrecord PedestalComponent [config datasource]
            component/Lifecycle

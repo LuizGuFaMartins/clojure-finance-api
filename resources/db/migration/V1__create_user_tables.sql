@@ -3,6 +3,8 @@ CREATE TABLE users (
   name TEXT NULL,
   email TEXT UNIQUE NULL,
   password TEXT NULL,
+  cpf CHAR(11) NOT NULL,
+  phone CHAR(11) NOT NULL,
   active BOOLEAN NOT NULL DEFAULT TRUE,
   balance NUMERIC(12,2) NOT NULL DEFAULT 0,
   created_at TIMESTAMP NOT NULL DEFAULT now(),
@@ -20,3 +22,9 @@ CREATE TABLE bank_data (
   expires_year INT NULL,
   created_at TIMESTAMP NULL DEFAULT now()
 );
+
+ALTER TABLE bank_data ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY user_bank_data_isolation ON bank_data
+    FOR ALL
+    USING (user_id = NULLIF(current_setting('app.current_user_id', TRUE), '')::UUID);
