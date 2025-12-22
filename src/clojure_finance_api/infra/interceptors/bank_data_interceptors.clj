@@ -66,9 +66,9 @@
            (let [result (bank-data-service/find-bank-data-by-user-id ctx id)]
              (assoc ctx :response
                         (cond
-                          (:success result) (response 200 (:success result))
-                          (:error result)   (error-type-handler result)
-                          :else             (response-error 500 "Unknown error")))))))}))
+                          (contains? result :success) (response 200 (or (:success result) nil))
+                          (:error result)             (error-type-handler result)
+                          :else                       (response-error 500 "Unknown error")))))))}))
 
 (def bank-data-create-interceptor
   (interceptor

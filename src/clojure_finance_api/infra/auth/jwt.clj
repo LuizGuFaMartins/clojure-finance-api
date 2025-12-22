@@ -20,7 +20,8 @@
      :enter (fn [ctx]
               (let [auth-header (get-in ctx [:request :headers "authorization"])
                     token (when (and auth-header (str/starts-with? auth-header "Bearer "))
-                            (subs auth-header 7))] ;; Pega tudo após "Bearer "
+                            (subs auth-header 7))]
+
                 (if-not token
                   (assoc ctx :response {:status 401
                                         :headers {"Content-Type" "application/json"}
