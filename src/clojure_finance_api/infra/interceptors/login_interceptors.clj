@@ -1,10 +1,12 @@
 (ns clojure-finance-api.infra.interceptors.login-interceptors
   (:require
+    [clojure-finance-api.domain.services.user-service :as user-service]
     [malli.core :as m]
     [malli.error :as me]
     [io.pedestal.interceptor :refer [interceptor]]
     [clojure-finance-api.infra.http.response :refer [response response-error]]
     [clojure-finance-api.domain.schemas.login-schemas :as schemas]
+    [clojure-finance-api.domain.repositories.user-repo :as user-repo]
     [clojure-finance-api.domain.services.login-service :as login-service]))
 
 (defn error-type-handler [result]
@@ -25,8 +27,41 @@
                                                 (me/humanize (m/explain schemas/LoginSchema body))))
 
            (let [result (login-service/authenticate ctx body)]
+             (if-let [success-data (:success result)]
+               (let [token (:access-token success-data)
+                     ;; Retornamos apenas os dados do usuário no corpo
+                     user-data (dissoc success-data :access-token)
+                     resp (response 200 user-data)]
+                 (assoc ctx :response
+                            (assoc resp :cookies {"token" {:value     token
+                                                           :http-only true
+                                                           :path      "/"
+                                                           :same-site :lax ;;:strict
+                                                           :secure    false}})))
+               (assoc ctx :response
+                          (if-let [err (:error result)]
+                            (error-type-handler result)
+                            (response-error 500 "Unknown error"))))))))}))
+
+(def get-current-user
+  (interceptor
+    {:name ::get-current-user
+     :enter
+     (fn [ctx]
+       (let [logged-id  (get-in ctx [:request :identity :id])]
+
+         (if-not logged-id
+           (assoc ctx :response (response-error 401 "Não autorizado"))
+
+           (let [uuid-id (java.util.UUID/fromString logged-id)
+                 user-result (user-service/find-user-by-id ctx uuid-id)]
              (assoc ctx :response
-                        (case (some-> result keys first)
-                          :success (response 200 (:success result))
-                          :error (error-type-handler result)
-                          (response-error 500 "Unknown error")))))))}))
+                        (cond
+                          (:success user-result)
+                          (response 200 (:success user-result))
+
+                          (:error user-result)
+                          (error-type-handler user-result)
+
+                          :else
+                          (response-error 500 "Erro desconhecido ao buscar usuário")))))))}))

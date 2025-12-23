@@ -45,7 +45,6 @@
                           :error   (error-type-handler result)
                           (response-error 500 "Unknown error")))))))}))
 
-
 (def user-create-interceptor
   (interceptor
     {:name ::user-create

@@ -2,16 +2,14 @@
   (:require [io.pedestal.http.route :as route]
             [io.pedestal.http.body-params :as body-params]
             [clojure-finance-api.infra.auth.jwt :as auth]
-            [clojure-finance-api.shared.global-interceptors :as interceptors]
             [clojure-finance-api.infra.interceptors.user-interceptors :as user-i]
             [clojure-finance-api.infra.interceptors.login-interceptors :as login-i]
             [clojure-finance-api.infra.interceptors.bank-data-interceptors :as bank-i]))
 
 (def raw-routes
   [;; --- Login ---
-   ["/login" :post [(body-params/body-params) login-i/login]
-    :route-name :action-login
-    :public true]
+   ["/login" :post [(body-params/body-params) login-i/login] :route-name :action-login :public true]
+   ["/auth/me" :get [login-i/get-current-user] :route-name :auth-me]
 
    ;; --- Users ---
    ["/users"     :get  [user-i/list-users-interceptor] :route-name :list-users]

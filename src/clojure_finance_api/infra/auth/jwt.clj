@@ -21,28 +21,29 @@
   (interceptor
     {:name ::auth-interceptor
      :enter (fn [ctx]
-              (let [auth-header (get-in ctx [:request :headers "authorization"])
-                    token       (when (and auth-header (str/starts-with? auth-header "Bearer "))
-                                  (subs auth-header 7))]
-                (if-not token
-                  (assoc ctx :response {:status 401
-                                        :headers {"Content-Type" "application/json"}
-                                        :body {:error "Token missing or malformed"}})
-                  (try
-                    (let [claims (jwt/unsign token secret {:alg :hs256 :aud "clojure-finance-api"})]
-                      (if (= (:type claims) "access")
-                        (assoc-in ctx [:request :identity] claims)
-                        (assoc ctx :response {:status 401 :body {:error "Invalid token type"}})))
+              (let [method (get-in ctx [:request :request-method])]
+                ;; 1. Se for OPTIONS, ignore completamente a autenticação
+                (if (= method :options)
+                  ctx
 
-                    (catch Exception e
-                      (let [error-msg (ex-message e)]
-                        (assoc ctx :response
-                                   {:status 401
-                                    :headers {"Content-Type" "application/json"}
-                                    :body {:error (cond
-                                                    (str/includes? error-msg "exp") "Token expired"
-                                                    (str/includes? error-msg "iat") "Invalid issue time"
-                                                    :else "Invalid token")}})))))))}))
+                  ;; 2. Lógica normal para outros métodos
+                  (let [auth-header (get-in ctx [:request :headers "authorization"])
+                        header-token (when (and auth-header (clojure.string/starts-with? auth-header "Bearer "))
+                                       (subs auth-header 7))
+                        cookies (get-in ctx [:request :cookies])
+                        cookie-token (or (get-in cookies ["token" :value])
+                                         (get-in cookies [:token :value]))
+                        token (or header-token cookie-token)]
+
+                    (if (clojure.string/blank? token)
+                      (assoc ctx :response {:status 401 :body {:error "Token missing"}})
+                      (try
+                        (let [claims (jwt/unsign token secret {:alg :hs256 :aud "clojure-finance-api"})]
+                          (if (= (:type claims) "access")
+                            (assoc-in ctx [:request :identity] claims)
+                            (assoc ctx :response {:status 401 :body {:error "Invalid token type"}})))
+                        (catch Exception _
+                          (assoc ctx :response {:status 401 :body {:error "Invalid or expired token"}}))))))))}))
 
 (defn authorize-role [required-role]
   (interceptor
