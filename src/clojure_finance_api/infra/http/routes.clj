@@ -38,7 +38,7 @@
                clean-opts (dissoc opts :public)
                final-interceptors (if is-public?
                                     interceptors
-                                    (into [auth/auth-interceptor interceptors/rls-interceptor] interceptors))]
+                                    (into [auth/auth-interceptor] interceptors))]
 
            (vec (concat [path method final-interceptors] (mapcat identity clean-opts)))))
        routes))

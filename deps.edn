@@ -9,6 +9,7 @@
         metosin/malli {:mvn/version "0.20.0"}
         buddy/buddy-auth {:mvn/version "3.0.323"}
         buddy/buddy-sign {:mvn/version "3.6.1-359"}
+        buddy/buddy-hashers {:mvn/version "2.0.167"}
         clj-http/clj-http {:mvn/version "3.12.3"}
         prismatic/schema {:mvn/version "1.4.1"}
         com.github.seancorfield/next.jdbc {:mvn/version "1.3.883"}

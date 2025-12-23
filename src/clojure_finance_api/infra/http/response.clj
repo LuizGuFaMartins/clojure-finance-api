@@ -1,6 +1,5 @@
 (ns clojure-finance-api.infra.http.response
-  (:require [cheshire.core :as json]
-            [clojure.stacktrace :as st]))
+  (:require [cheshire.core :as json]))
 
 (defn response
   ([status]

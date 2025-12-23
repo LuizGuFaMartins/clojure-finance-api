@@ -1,24 +1,30 @@
 (ns clojure-finance-api.domain.services.user-service
-    (:require
-      [clojure-finance-api.domain.repositories.user-repo :as repo]))
+  (:require
+    [clojure-finance-api.domain.repositories.user-repo :as repo]
+    [clojure-finance-api.infra.auth.hash :as hash-util]))
 
 (defn list-users
-  [{{:keys [datasource]} :components}]
-  (let [users (repo/list-users datasource)]
+  [{{:keys [datasource]} :components {:keys [identity]} :request}]
+  (let [logged-id  (:id identity)
+        users (repo/list-users datasource)]
     (cond
-      (nil? users)
+      (empty? users)
       {:error :has-no-users}
+
       :else
-      {:success {:users users}})))
+      (let [filtered-users (->> users
+                                (remove #(= (str (:id %)) (str logged-id)))
+                                (map #(dissoc % :password)))]
+        {:success {:users filtered-users}}))))
 
 (defn find-user-by-id
   [{{:keys [datasource]} :components} id]
   (let [user (repo/find-user-by-id datasource id)]
     (if user
-      {:success user}
+      {:success (dissoc user :password)}
       {:error :user-not-found})))
 
-(defn find-user-by-email
+(defn find-user-by-email-with-password
   [{{:keys [datasource]} :components} email]
   (let [user (repo/find-user-by-email datasource email)]
     (if user
@@ -30,11 +36,16 @@
   (if (repo/find-user-by-email datasource (:email body))
     {:error :email-already-in-use}
     (let [id (random-uuid)
-          user (merge {:id id :active true :balance 0} body)]
+
+          hashed-password (hash-util/hash-password (:password body))
+          user (merge {:id id :active true :balance 0}
+                      body
+                      {:password hashed-password})]
       (try
         (repo/create-user! datasource user)
-        {:success user}
-        (catch Exception _
+        {:success (dissoc user :password)}
+        (catch Exception e
+          (println "Erro DB:" (.getMessage e))
           {:error :database-error})))))
 
 (defn update-user
@@ -42,11 +53,15 @@
   (let [user (repo/find-user-by-id datasource id)]
     (if-not user
       {:error :user-not-found}
-      (try
-        (repo/update-user! datasource id body)
-        {:success (merge user body)}
-        (catch Exception _
-          {:error :database-error})))))
+      (let [updated-body (if (:password body)
+                           (assoc body :password (hash-util/hash-password (:password body)))
+                           body)]
+        (try
+          (repo/update-user! datasource id updated-body)
+          {:success (dissoc (merge user updated-body) :password)}
+          (catch Exception e
+            (println "Erro DB:" (.getMessage e))
+            {:error :database-error}))))))
 
 (defn delete-user
   [{{:keys [datasource]} :components} id]
