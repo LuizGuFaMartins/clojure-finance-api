@@ -10,6 +10,7 @@
   [;; --- Login ---
    ["/login" :post [(body-params/body-params) login-i/login] :route-name :action-login :public true]
    ["/auth/me" :get [login-i/get-current-user] :route-name :auth-me]
+   ["/logout" :post [login-i/logout] :route-name :action-logout]
 
    ;; --- Users ---
    ["/users"     :get  [user-i/list-users-interceptor] :route-name :list-users]

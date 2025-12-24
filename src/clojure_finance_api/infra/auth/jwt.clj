@@ -2,7 +2,9 @@
 (ns clojure-finance-api.infra.auth.jwt
   (:require [buddy.sign.jwt :as jwt]
             [clojure.string :as str]
-            [io.pedestal.interceptor :refer [interceptor]]))
+            [clojure-finance-api.infra.http.response :refer [response-error]]
+            [io.pedestal.interceptor :refer [interceptor]]
+            [io.pedestal.interceptor.chain :as chain]))
 
 (def ^:private secret (or (System/getenv "JWT_SECRET") "mudar-para-uma-env-var-em-producao"))
 
@@ -17,46 +19,63 @@
                  :jti  (str (java.util.UUID/randomUUID))}] ;; ID único para este token
     (jwt/sign payload secret {:alg :hs256})))
 
+(defn auth-error
+  [ctx status message]
+  (-> ctx
+      (assoc :response (response-error status message))
+      chain/terminate))
+
 (def auth-interceptor
   (interceptor
     {:name ::auth-interceptor
-     :enter (fn [ctx]
-              (let [method (get-in ctx [:request :request-method])]
-                ;; 1. Se for OPTIONS, ignore completamente a autenticação
-                (if (= method :options)
-                  ctx
+     :enter
+     (fn [ctx]
+       (let [method (get-in ctx [:request :request-method])]
+         (if (= method :options)
+           ctx
 
-                  ;; 2. Lógica normal para outros métodos
-                  (let [auth-header (get-in ctx [:request :headers "authorization"])
-                        header-token (when (and auth-header (clojure.string/starts-with? auth-header "Bearer "))
-                                       (subs auth-header 7))
-                        cookies (get-in ctx [:request :cookies])
-                        cookie-token (or (get-in cookies ["token" :value])
-                                         (get-in cookies [:token :value]))
-                        token (or header-token cookie-token)]
+           (let [auth-header (get-in ctx [:request :headers "authorization"])
+                 header-token (when (and auth-header
+                                         (str/starts-with? auth-header "Bearer "))
+                                (subs auth-header 7))
+                 cookies (get-in ctx [:request :cookies])
+                 cookie-token (or (get-in cookies ["token" :value])
+                                  (get-in cookies [:token :value]))
+                 token (or header-token cookie-token)]
 
-                    (if (clojure.string/blank? token)
-                      (assoc ctx :response {:status 401 :body {:error "Token missing"}})
-                      (try
-                        (let [claims (jwt/unsign token secret {:alg :hs256 :aud "clojure-finance-api"})]
-                          (if (= (:type claims) "access")
-                            (assoc-in ctx [:request :identity] claims)
-                            (assoc ctx :response {:status 401 :body {:error "Invalid token type"}})))
-                        (catch Exception _
-                          (assoc ctx :response {:status 401 :body {:error "Invalid or expired token"}}))))))))}))
+             (cond
+               (str/blank? token)
+               (auth-error ctx 401 "Token missing")
+
+               :else
+               (try
+                 (let [claims (jwt/unsign token secret {:alg :hs256 :aud "clojure-finance-api"})]
+                   (if (= (:type claims) "access")
+                     (assoc-in ctx [:request :identity] claims)
+                     (auth-error ctx 401 "Invalid token type")))
+                 (catch Exception _
+                   (auth-error ctx 401 "Invalid or expired token"))))))))}))
+
+(defn authz-error
+  [ctx status message]
+  (-> ctx
+      (assoc :response {:status status
+                        :body {:error message}})
+      chain/terminate))
 
 (defn authorize-role [required-role]
   (interceptor
     {:name ::authorize-role
-     :enter (fn [ctx]
-              (let [identity (get-in ctx [:request :identity])
-                    user-role (:role identity)]
-                (cond
-                  (nil? identity)
-                  (assoc ctx :response {:status 401 :body {:error "Unauthenticated"}})
+     :enter
+     (fn [ctx]
+       (let [identity (get-in ctx [:request :identity])
+             user-role (:role identity)]
+         (cond
+           (nil? identity)
+           (authz-error ctx 401 "Unauthenticated")
 
-                  (= (name required-role) (name user-role))
-                  ctx
+           (= (name required-role) (name user-role))
+           ctx
 
-                  :else
-                  (assoc ctx :response {:status 403 :body {:error "Forbidden"}}))))}))
+           :else
+           (authz-error ctx 403 "Forbidden"))))}))

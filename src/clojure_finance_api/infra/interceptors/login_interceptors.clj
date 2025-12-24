@@ -31,7 +31,7 @@
                (let [token (:access-token success-data)
                      ;; Retornamos apenas os dados do usuário no corpo
                      user-data (dissoc success-data :access-token)
-                     resp (response 200 user-data)]
+                     resp (response 200 (:user user-data))]
                  (assoc ctx :response
                             (assoc resp :cookies {"token" {:value     token
                                                            :http-only true
@@ -42,6 +42,20 @@
                           (if-let [err (:error result)]
                             (error-type-handler result)
                             (response-error 500 "Unknown error"))))))))}))
+
+(def logout
+  (interceptor
+    {:name ::logout
+     :enter
+     (fn [ctx]
+       (assoc ctx :response
+                  (-> (response 200 {:message "Logout realizado com sucesso"})
+                      (assoc :cookies {"token" {:value     ""
+                                                :http-only true
+                                                :path      "/"
+                                                :max-age   0
+                                                :expires   "Thu, 01 Jan 1970 00:00:00 GMT"
+                                                :secure    false}}))))}))
 
 (def get-current-user
   (interceptor
