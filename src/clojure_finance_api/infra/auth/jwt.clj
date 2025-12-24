@@ -59,22 +59,24 @@
 (defn authz-error
   [ctx status message]
   (-> ctx
-      (assoc :response {:status status
-                        :body {:error message}})
+      (assoc :response (response-error status message))
       chain/terminate))
 
-(defn authorize-role [required-role]
+(defn authorize-roles
+  [allowed-roles]
   (interceptor
-    {:name ::authorize-role
+    {:name ::authorize-roles
      :enter
      (fn [ctx]
-       (let [identity (get-in ctx [:request :identity])
-             user-role (:role identity)]
+       (let [identity  (get-in ctx [:request :identity])
+             user-role (:role identity)
+             allowed?  (some #(= (name %) (name user-role)) allowed-roles)]
+
          (cond
            (nil? identity)
            (authz-error ctx 401 "Unauthenticated")
 
-           (= (name required-role) (name user-role))
+           allowed?
            ctx
 
            :else

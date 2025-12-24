@@ -29,9 +29,8 @@
            (let [result (login-service/authenticate ctx body)]
              (if-let [success-data (:success result)]
                (let [token (:access-token success-data)
-                     ;; Retornamos apenas os dados do usuário no corpo
                      user-data (dissoc success-data :access-token)
-                     resp (response 200 (:user user-data))]
+                     resp (response 200 (assoc (:user user-data) :access-token token))]
                  (assoc ctx :response
                             (assoc resp :cookies {"token" {:value     token
                                                            :http-only true

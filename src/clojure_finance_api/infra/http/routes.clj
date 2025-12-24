@@ -13,11 +13,11 @@
    ["/logout" :post [login-i/logout] :route-name :action-logout]
 
    ;; --- Users ---
-   ["/users"     :get  [user-i/list-users-interceptor] :route-name :list-users]
-   ["/users"     :post [(body-params/body-params) user-i/user-create-interceptor] :route-name :create-user]
+   ["/users"     :get  [user-i/list-users-interceptor] :route-name :list-users :roles [:admin]]
+   ["/users"     :post [(body-params/body-params) user-i/user-create-interceptor] :route-name :create-user :roles [:admin]]
    ["/users/:id" :get  [user-i/user-find-by-id-interceptor] :route-name :find-user-by-id]
-   ["/users/:id" :put  [(body-params/body-params) user-i/user-update-interceptor] :route-name :update-user]
-   ["/users/:id" :delete [user-i/user-delete-interceptor] :route-name :delete-user]
+   ["/users/:id" :put  [(body-params/body-params) user-i/user-update-interceptor] :route-name :update-user :roles [:admin]]
+   ["/users/:id" :delete [user-i/user-delete-interceptor] :route-name :delete-user :roles [:admin]]
 
    ;; --- Bank Data ---
    ["/bank-data" :get  [bank-i/list-bank-data-interceptor] :route-name :list-bank-data]
@@ -29,18 +29,34 @@
 
 (defn- wrap-auth-interceptor
   [routes]
-  (map (fn [route]
-         (let [
-               [path method interceptors] route
-               opts (apply hash-map (drop 3 route))
-               is-public? (:public opts)
-               clean-opts (dissoc opts :public)
-               final-interceptors (if is-public?
-                                    interceptors
-                                    (into [auth/auth-interceptor] interceptors))]
+  (map
+    (fn [route]
+      (let [[path method interceptors] route
+            opts          (apply hash-map (drop 3 route))
+            is-public?    (:public opts)
+            roles         (:roles opts)
+            clean-opts    (dissoc opts :public :roles)
 
-           (vec (concat [path method final-interceptors] (mapcat identity clean-opts)))))
-       routes))
+            auth-chain
+            (cond
+              is-public?
+              interceptors
+
+              roles
+              (into [auth/auth-interceptor
+                     (auth/authorize-roles roles)]
+                    interceptors)
+
+              :else
+              (into [auth/auth-interceptor]
+                    interceptors))]
+
+        (vec
+          (concat
+            [path method auth-chain]
+            (mapcat identity clean-opts)))))
+    routes))
+
 
 (def routes
   (-> raw-routes
