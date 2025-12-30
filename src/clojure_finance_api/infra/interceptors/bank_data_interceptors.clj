@@ -126,6 +126,6 @@
            (let [result (bank-data-service/delete-bank-data ctx id)]
              (assoc ctx :response
                         (cond
-                          (:success result) (response 204)
+                          (contains? result :success) (response 204 (or (:success result) nil))
                           (:error result)   (error-type-handler result)
                           :else             (response-error 500 "Unknown error")))))))}))

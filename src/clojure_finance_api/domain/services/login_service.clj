@@ -19,7 +19,7 @@
       {:error :user-inactive}
 
       :else
-      (let [token (auth/create-token user)
+      (let [token (auth/create-token ctx user)
             user-data (dissoc user :password)]
         {:success {:access-token token
                    :user user-data}}))))

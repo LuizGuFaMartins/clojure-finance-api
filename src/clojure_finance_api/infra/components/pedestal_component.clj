@@ -16,7 +16,7 @@
                               ::http/type :jetty
                               ::http/join? false
                               ::http/port (-> config :server :port)
-                              ::http/components {:datasource datasource}}
+                              ::http/components {:datasource datasource :config config}}
 
                  cors-interceptor (cors/allow-origin {:creds true
                                                       :allowed-origins ["http://localhost:3000" "http://127.0.0.1:3000"]})
@@ -26,6 +26,7 @@
                             (update ::http/interceptors (fn [stack]
                                                           (into [cors-interceptor
                                                                  interceptors/cookies-interceptor
+                                                                 interceptors/content-negotiation-interceptor
                                                                  (interceptors/inject-components component)]
                                                                 stack)))
                             http/create-server

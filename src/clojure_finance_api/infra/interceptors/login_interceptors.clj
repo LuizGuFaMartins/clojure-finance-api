@@ -6,7 +6,6 @@
     [io.pedestal.interceptor :refer [interceptor]]
     [clojure-finance-api.infra.http.response :refer [response response-error]]
     [clojure-finance-api.domain.schemas.login-schemas :as schemas]
-    [clojure-finance-api.domain.repositories.user-repo :as user-repo]
     [clojure-finance-api.domain.services.login-service :as login-service]))
 
 (defn error-type-handler [result]
@@ -36,7 +35,7 @@
                                                            :http-only true
                                                            :path      "/"
                                                            :same-site :lax ;;:strict
-                                                           :secure    false}})))
+                                                           :secure    false}}))) ;;true
                (assoc ctx :response
                           (if-let [err (:error result)]
                             (error-type-handler result)

@@ -2,7 +2,6 @@
   (:require
     [next.jdbc :as jdbc]
     [io.pedestal.interceptor :refer [interceptor]]
-    [io.pedestal.http.cors :as cors]
     [io.pedestal.http.ring-middlewares :as middlewares]
     [io.pedestal.http.content-negotiation :as content-negotiation]))
 
@@ -21,20 +20,27 @@
 (def rls-interceptor
   {:name :rls-interceptor
    :enter (fn [context]
-            (let [user-id (get-in context [:request :auth :id])
-                  datasource (get-in context [:request :components :datasource])]
+            (let [user-id (get-in context [:request :identity :id])
+                  datasource (get-in context [:components :datasource])]
               (if user-id
                 (let [conn (jdbc/get-connection datasource)]
-                  (jdbc/execute! conn [(str "SET LOCAL app.current_user_id = '" user-id "'")])
-                  (assoc-in context [:request :tx-conn] conn))
+                  (.setAutoCommit conn false)
+                  (try
+                    (jdbc/execute! conn [(str "SET LOCAL app.current_user_id = '" user-id "'")])
+                    (assoc-in context [:request :tx-conn] conn)
+                    (catch Exception e
+                      (.close conn)
+                      (throw e))))
                 context)))
 
    :leave (fn [context]
             (when-let [conn (get-in context [:request :tx-conn])]
+              (.commit conn) ;; Finaliza com sucesso
               (.close conn))
             context)
 
-   :error (fn [context _]
+   :error (fn [context err]
             (when-let [conn (get-in context [:request :tx-conn])]
+              (.rollback conn) ;; Desfaz em caso de erro
               (.close conn))
-            context)})
+            (assoc context :io.pedestal.interceptor.chain/error err))})

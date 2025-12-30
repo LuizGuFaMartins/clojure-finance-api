@@ -6,17 +6,18 @@
             [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.interceptor.chain :as chain]))
 
-(def ^:private secret (or (System/getenv "JWT_SECRET") "mudar-para-uma-env-var-em-producao"))
-
-(defn create-token [user]
-  (let [now (java.time.Instant/now)
+(defn create-token [ctx user]
+  (let [
+        config (get-in ctx [:components :config])
+        secret (get-in config [:auth :jwt :secret])
+        now (java.time.Instant/now)
         payload {:id   (str (:id user))
                  :role (name (:role user))
                  :iat  (.getEpochSecond now)
                  :exp  (.getEpochSecond (.plus now 1 java.time.temporal.ChronoUnit/HOURS))
                  :aud  "clojure-finance-api"
                  :type "access"
-                 :jti  (str (java.util.UUID/randomUUID))}] ;; ID único para este token
+                 :jti  (str (java.util.UUID/randomUUID))}]
     (jwt/sign payload secret {:alg :hs256})))
 
 (defn auth-error
@@ -30,7 +31,9 @@
     {:name ::auth-interceptor
      :enter
      (fn [ctx]
-       (let [method (get-in ctx [:request :request-method])]
+       (let [config (get-in ctx [:components :config])
+             secret (get-in config [:auth :jwt :secret])
+             method (get-in ctx [:request :request-method])]
          (if (= method :options)
            ctx
 

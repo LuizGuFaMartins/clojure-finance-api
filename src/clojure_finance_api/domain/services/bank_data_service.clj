@@ -1,60 +1,68 @@
 (ns clojure-finance-api.domain.services.bank-data-service
   (:require
-    [clojure-finance-api.domain.repositories.bank-data-repo :as repo]))
+    [clojure-finance-api.domain.repositories.bank-data-repo :as repo]
+    [clojure-finance-api.infra.http.context-utils :as ctx-utils]))
 
 (defn list-bank-data
-  [{{:keys [datasource]} :components}]
+  [ctx]
   (try
-    (let [data (repo/list-bank-data datasource)]
+    (let [conn (ctx-utils/get-db ctx)
+          data (repo/list-bank-data conn)]
       {:success data})
-    (catch java.lang.Exception _
+    (catch Exception _
       {:error :database-error})))
 
 (defn find-bank-data-by-id
-  [{{:keys [datasource]} :components} id]
+  [ctx id]
   (try
-    (if-let [bank-data (repo/find-bank-data-by-id datasource id)]
-      {:success bank-data}
-      {:error :bank-data-not-found})
-    (catch java.lang.Exception _
+    (let [conn (ctx-utils/get-db ctx)]
+      (if-let [bank-data (repo/find-bank-data-by-id conn id)]
+        {:success bank-data}
+        {:error :bank-data-not-found}))
+    (catch Exception _
       {:error :database-error})))
 
 (defn find-bank-data-by-user-id
-  [{{:keys [datasource]} :components} id]
+  [ctx id]
   (try
-    (let [data (repo/find-bank-data-by-user-id datasource id)]
+    (let [conn (ctx-utils/get-db ctx)
+          data (repo/find-bank-data-by-user-id conn id)]
       {:success data})
-    (catch java.lang.Exception _
+    (catch Exception _
       {:error :database-error})))
 
 (defn create-bank-data
-  [{{:keys [datasource]} :components} body]
+  [ctx body]
   (try
-    (let [id (random-uuid)
-          bank-data (merge {:id id :active true :balance 0} body)]
-      (repo/create-bank-data! datasource bank-data)
+    (let [conn (ctx-utils/get-db ctx)
+          user-id (ctx-utils/get-user-id ctx)
+          id (random-uuid)
+          bank-data (merge {:id id :user_id user-id :active true :balance 0} body)]
+      (repo/create-bank-data! conn bank-data)
       {:success bank-data})
-    (catch java.lang.Exception _
+    (catch Exception _
       {:error :database-error})))
 
 (defn update-bank-data
-  [{{:keys [datasource]} :components} id body]
+  [ctx id body]
   (try
-    (if-let [current-data (repo/find-bank-data-by-id datasource id)]
-      (do
-        (repo/update-bank-data! datasource id body)
-        {:success (merge current-data body)})
-      {:error :bank-data-not-found})
-    (catch java.lang.Exception _
+    (let [conn (ctx-utils/get-db ctx)]
+      (if-let [current-data (repo/find-bank-data-by-id conn id)]
+        (do
+          (repo/update-bank-data! conn id body)
+          {:success (merge current-data body)})
+        {:error :bank-data-not-found}))
+    (catch Exception _
       {:error :database-error})))
 
 (defn delete-bank-data
-  [{{:keys [datasource]} :components} id]
+  [ctx id]
   (try
-    (if (repo/find-bank-data-by-id datasource id)
-      (do
-        (repo/delete-bank-data! datasource id)
-        {:success nil})
-      {:error :bank-data-not-found})
-    (catch java.lang.Exception _
+    (let [conn (ctx-utils/get-db ctx)]
+      (if (repo/find-bank-data-by-id conn id)
+        (do
+          (repo/delete-bank-data! conn id)
+          {:success nil})
+        {:error :bank-data-not-found}))
+    (catch Exception _
       {:error :database-error})))
