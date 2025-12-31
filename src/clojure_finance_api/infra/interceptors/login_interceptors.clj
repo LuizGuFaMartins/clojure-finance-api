@@ -29,7 +29,7 @@
              (if-let [success-data (:success result)]
                (let [token (:access-token success-data)
                      user-data (dissoc success-data :access-token)
-                     resp (response 200 (assoc (:user user-data) :access-token token))]
+                     resp (response 200 (assoc (:user user-data)))]
                  (assoc ctx :response
                             (assoc resp :cookies {"token" {:value     token
                                                            :http-only true

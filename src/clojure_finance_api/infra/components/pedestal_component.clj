@@ -6,7 +6,7 @@
     [clojure-finance-api.infra.http.routes :refer [routes]]
     [io.pedestal.http.cors :as cors]))
 
-(defrecord PedestalComponent [config datasource]
+(defrecord PedestalComponent [config datasource auth]
            component/Lifecycle
 
     (start [component]
@@ -16,7 +16,7 @@
                               ::http/type :jetty
                               ::http/join? false
                               ::http/port (-> config :server :port)
-                              ::http/components {:datasource datasource :config config}}
+                              ::http/components {:datasource datasource :auth auth}}
 
                  cors-interceptor (cors/allow-origin {:creds true
                                                       :allowed-origins ["http://localhost:3000" "http://127.0.0.1:3000"]})

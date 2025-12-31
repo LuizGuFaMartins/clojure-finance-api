@@ -1,4 +1,3 @@
-
 (ns clojure-finance-api.infra.auth.jwt
   (:require [buddy.sign.jwt :as jwt]
             [clojure.string :as str]
@@ -6,11 +5,34 @@
             [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.interceptor.chain :as chain]))
 
+(defn- get-auth-component [ctx]
+  (get-in ctx [:components :auth]))
+
+(defn- get-secret [ctx]
+  (:secret (get-auth-component ctx)))
+
+(defn- extract-token [ctx]
+  (let [auth-header (get-in ctx [:request :headers "authorization"])
+        header-token (when (and auth-header (str/starts-with? auth-header "Bearer "))
+                       (subs auth-header 7))
+        cookies      (get-in ctx [:request :cookies])
+        cookie-token (or (get-in cookies ["token" :value])
+                         (get-in cookies [:token :value]))]
+    (or header-token cookie-token)))
+
+(defn auth-error [ctx status message]
+  (-> ctx
+      (assoc :response (response-error status message))
+      chain/terminate))
+
+(defn authz-error [ctx status message]
+  (-> ctx
+      (assoc :response (response-error status message))
+      chain/terminate))
+
 (defn create-token [ctx user]
-  (let [
-        config (get-in ctx [:components :config])
-        secret (get-in config [:auth :jwt :secret])
-        now (java.time.Instant/now)
+  (let [secret (get-secret ctx)
+        now    (java.time.Instant/now)
         payload {:id   (str (:id user))
                  :role (name (:role user))
                  :iat  (.getEpochSecond now)
@@ -20,37 +42,24 @@
                  :jti  (str (java.util.UUID/randomUUID))}]
     (jwt/sign payload secret {:alg :hs256})))
 
-(defn auth-error
-  [ctx status message]
-  (-> ctx
-      (assoc :response (response-error status message))
-      chain/terminate))
-
 (def auth-interceptor
   (interceptor
     {:name ::auth-interceptor
      :enter
      (fn [ctx]
-       (let [config (get-in ctx [:components :config])
-             secret (get-in config [:auth :jwt :secret])
+       (let [secret (get-secret ctx)
              method (get-in ctx [:request :request-method])]
-         (if (= method :options)
-           ctx
 
-           (let [auth-header (get-in ctx [:request :headers "authorization"])
-                 header-token (when (and auth-header
-                                         (str/starts-with? auth-header "Bearer "))
-                                (subs auth-header 7))
-                 cookies (get-in ctx [:request :cookies])
-                 cookie-token (or (get-in cookies ["token" :value])
-                                  (get-in cookies [:token :value]))
-                 token (or header-token cookie-token)]
+         (cond
+           (= method :options) ctx
 
-             (cond
-               (str/blank? token)
+           (nil? secret)
+           (auth-error ctx 500 "Security configuration (secret) not found")
+
+           :else
+           (let [token (extract-token ctx)]
+             (if (str/blank? token)
                (auth-error ctx 401 "Token missing")
-
-               :else
                (try
                  (let [claims (jwt/unsign token secret {:alg :hs256 :aud "clojure-finance-api"})]
                    (if (= (:type claims) "access")
@@ -58,12 +67,6 @@
                      (auth-error ctx 401 "Invalid token type")))
                  (catch Exception _
                    (auth-error ctx 401 "Invalid or expired token"))))))))}))
-
-(defn authz-error
-  [ctx status message]
-  (-> ctx
-      (assoc :response (response-error status message))
-      chain/terminate))
 
 (defn authorize-roles
   [allowed-roles]
@@ -74,13 +77,7 @@
        (let [identity  (get-in ctx [:request :identity])
              user-role (:role identity)
              allowed?  (some #(= (name %) (name user-role)) allowed-roles)]
-
          (cond
-           (nil? identity)
-           (authz-error ctx 401 "Unauthenticated")
-
-           allowed?
-           ctx
-
-           :else
-           (authz-error ctx 403 "Forbidden"))))}))
+           (nil? identity) (authz-error ctx 401 "Unauthenticated")
+           allowed?        ctx
+           :else           (authz-error ctx 403 "Forbidden"))))}))
