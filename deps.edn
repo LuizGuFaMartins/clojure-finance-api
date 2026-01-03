@@ -17,8 +17,8 @@
         com.zaxxer/HikariCP {:mvn/version "5.0.1"}
         com.github.seancorfield/honeysql {:mvn/version "2.4.1066"}
         org.flywaydb/flyway-core {:mvn/version "9.21.2"}
-        org.testcontainers/testcontainers {:mvn/version "1.18.0"}
-        org.testcontainers/postgresql {:mvn/version "1.18.0"}
+        org.testcontainers/testcontainers {:mvn/version "1.20.4"}
+        org.testcontainers/postgresql {:mvn/version "1.20.4"}
         hiccup/hiccup {:mvn/version "2.0.0-RC1"}
         faker/faker {:mvn/version "0.3.2"}}
 
@@ -26,8 +26,24 @@
  {
   :dev {:main-opts ["-e" "(require,'user)" "-e" "(in-ns,'user)"]}
   :run {:main-opts ["-m" "clojure-finance-api.core"]}
-  :test {:extra-paths ["test"]}
+  ;:test {:extra-paths ["test"]}
   :dev-calva {:extra-paths ["dev"] :extra-deps {org.clojure/tools.namespace {:mvn/version "1.4.5"}}}
+
+  :test
+  {:extra-paths ["test"]
+   :extra-deps
+   {lambdaisland/kaocha               {:mvn/version "1.91.1392"}
+    clj-test-containers/clj-test-containers {:mvn/version "0.7.4"}
+    org.testcontainers/postgresql     {:mvn/version "1.20.4"}}
+   :main-opts ["-m" "kaocha.runner"]}
+
+  ;; Alias para o ambiente de teste no IntelliJ/REPL
+  :test-env {:extra-paths ["test"]
+             :extra-deps  {clj-test-containers/clj-test-containers {:mvn/version "0.7.4"}
+                           org.testcontainers/testcontainers       {:mvn/version "1.20.4"}
+                           org.testcontainers/postgresql           {:mvn/version "1.20.4"}
+                           com.github.docker-java/docker-java-transport-zerodep {:mvn/version "3.4.0"}}
+             :jvm-opts    ["-Dcom.github.dockerjava.api.version=1.44"]
 
   ;;   :dev {:extra-paths ["dev"]
   ;;         :extra-deps {com.stuartsierra/component.repl {:mvn/version "0.2.0"}
@@ -35,4 +51,4 @@
   ;;         :override-deps {nrepl/nrepl {:mvn/version "1.5.1"}
   ;;                         cider/cider-nrepl {:mvn/version "0.58.0"}}}
 
-  }}
+  }}}

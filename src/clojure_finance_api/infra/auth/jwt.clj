@@ -42,6 +42,10 @@
                  :jti  (str (java.util.UUID/randomUUID))}]
     (jwt/sign payload secret {:alg :hs256})))
 
+(defn verify-token [ctx token]
+  (let [secret (get-secret ctx)]
+    (jwt/unsign token secret {:alg :hs256 :aud "clojure-finance-api"})))
+
 (def auth-interceptor
   (interceptor
     {:name ::auth-interceptor
@@ -61,7 +65,7 @@
              (if (str/blank? token)
                (auth-error ctx 401 "Token missing")
                (try
-                 (let [claims (jwt/unsign token secret {:alg :hs256 :aud "clojure-finance-api"})]
+                 (let [claims (verify-token ctx token)]
                    (if (= (:type claims) "access")
                      (assoc-in ctx [:request :identity] claims)
                      (auth-error ctx 401 "Invalid token type")))

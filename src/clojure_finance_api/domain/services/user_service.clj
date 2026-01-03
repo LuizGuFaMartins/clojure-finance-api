@@ -62,7 +62,7 @@
                            (assoc body :password (hash-util/hash-password (:password body)))
                            body)]
         (try
-          (repo/update-user! conn id updated-body)
+          (repo/update-user! conn id (dissoc updated-body :id :created-at))
           {:success (dissoc (merge user updated-body) :password)}
           (catch Exception e
             (println "Erro DB:" (.getMessage e))

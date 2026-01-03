@@ -59,7 +59,7 @@
     (sql/format
       {:update :users
        :set    (assoc (dissoc data :role) :updated-at :%now)
-       :where  [:= :id id]
+       :where  [:= :id [:cast id :uuid]]
        :returning [:*]})
     builder))
 
