@@ -58,12 +58,12 @@
         user (repo/find-user-by-id conn id)]
     (if-not user
       {:error :user-not-found}
-      (let [updated-body (if (:password body)
-                           (assoc body :password (hash-util/hash-password (:password body)))
-                           body)]
+      (let [payload (cond-> body
+                            (:password body) (update :password hash-util/hash-password)
+                            :always          (dissoc :id :created-at :email :role))]
         (try
-          (repo/update-user! conn id (dissoc updated-body :id :created-at))
-          {:success (dissoc (merge user updated-body) :password)}
+          (repo/update-user! conn id payload)
+          {:success (dissoc (merge user payload) :password)}
           (catch Exception e
             (println "Erro DB:" (.getMessage e))
             {:error :database-error}))))))

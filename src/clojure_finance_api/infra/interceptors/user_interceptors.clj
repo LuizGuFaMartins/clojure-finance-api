@@ -67,17 +67,18 @@
     {:name ::user-update
      :enter
      (fn [ctx]
-       (let [id-str (get-in ctx [:request :path-params :id])
-             id     (parse-uuid id-str)
-             body   (get-in ctx [:request :json-params])]
+       (let [id-str     (get-in ctx [:request :path-params :id])
+             id         (parse-uuid id-str)
+             raw-body   (get-in ctx [:request :json-params])
+             body       (into {} (remove (fn [[_ v]] (and (string? v) (clojure.string/blank? v))) raw-body))]
 
          (cond
            (nil? id)
            (assoc ctx :response (response-error 400 "Invalid user id"))
 
-           (not (m/validate schemas/UserCreateSchema body))
+           (not (m/validate schemas/UserUpdateSchema body))
            (assoc ctx :response (response-error 400 "Invalid update payload"
-                                                (me/humanize (m/explain schemas/UserCreateSchema body))))
+                                                (me/humanize (m/explain schemas/UserUpdateSchema body))))
 
            :else
            (let [result (user-service/update-user ctx id body)]
