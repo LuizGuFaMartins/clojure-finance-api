@@ -5,11 +5,36 @@
             [clojure-finance-api.infra.auth.jwt :as auth]
             [clojure-finance-api.infra.interceptors.user-interceptors :as user-i]
             [clojure-finance-api.infra.interceptors.login-interceptors :as login-i]
-            [clojure-finance-api.infra.interceptors.bank-data-interceptors :as bank-i]))
+            [clojure-finance-api.infra.interceptors.bank-data-interceptors :as bank-i]
+            [clojure-finance-api.infra.graphql.core :as gql-core]
+            [com.walmartlabs.lacinia.pedestal2 :as lp]))
+
+(def compiled-gql (gql-core/compiled-schema))
+
+(defn graphql-chain [schema]
+  [lp/json-response-interceptor
+   lp/error-response-interceptor
+   lp/body-data-interceptor
+   lp/graphql-data-interceptor
+   lp/status-conversion-interceptor
+   lp/missing-query-interceptor
+   (lp/query-parser-interceptor schema)
+   lp/prepare-query-interceptor
+   lp/query-executor-handler])
 
 (def raw-routes
-  [;; --- Login ---
+  [;; --- Login & Public ---
    ["/login" :post [(body-params/body-params) login-i/login] :route-name :action-login :public true]
+
+   ;; --- GraphQL & IDE ---
+   ;; GraphiQL é público para facilitar o desenvolvimento/testes
+   ["/graphiql" :get [(lp/graphiql-ide-handler {})] :route-name :graphiql :public true]
+
+   ;; A rota da API GraphQL herda a segurança JWT automaticamente (não é :public)
+   ["/graphql" :post [(body-params/body-params)
+                      (graphql-chain compiled-gql)] :route-name :graphql-api]
+
+   ;; --- Auth & Session ---
    ["/auth/me" :get [login-i/get-current-user] :route-name :auth-me]
    ["/logout" :post [login-i/logout] :route-name :action-logout]
 

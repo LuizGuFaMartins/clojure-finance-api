@@ -20,7 +20,10 @@
         org.testcontainers/testcontainers {:mvn/version "1.20.4"}
         org.testcontainers/postgresql {:mvn/version "1.20.4"}
         hiccup/hiccup {:mvn/version "2.0.0-RC1"}
-        faker/faker {:mvn/version "0.3.2"}}
+        faker/faker {:mvn/version "0.3.2"}
+        com.walmartlabs/lacinia {:mvn/version "1.2"}
+        com.walmartlabs/lacinia-pedestal {:mvn/version "1.1"}
+        }
 
  :aliases
  {;; --- Desenvolvimento Local (REPL) ---
