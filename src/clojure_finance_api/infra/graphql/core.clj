@@ -8,8 +8,7 @@
             [clojure-finance-api.infra.graphql.schemas.input-types :as inputs]))
 
 (defn- build-schema []
-  {:objects (merge types/transaction-types
-                   )
+  {:objects (merge types/transaction-types)
    :queries (merge queries/transaction-queries)
    :mutations (merge mutations/transaction-mutations)
    :input-objects (merge inputs/input-types)})

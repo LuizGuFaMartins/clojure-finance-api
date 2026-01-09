@@ -5,12 +5,14 @@
 
 (def builder {:builder-fn rs/as-unqualified-kebab-maps})
 
+(def ^:private transaction-columns
+  [:id :from-user :to-user :amount :status :created-at])
+
 (defn list-transactions [ds]
   (jdbc/execute!
     ds
     (sql/format
-      {:select [:id :user-id :card-holder :card-last-4 :card-brand
-                :expires-month :expires-year :created-at]
+      {:select transaction-columns
        :from   :transactions})
     builder))
 
@@ -18,53 +20,46 @@
   (jdbc/execute-one!
     ds
     (sql/format
-      {:select [:id :user-id :card-holder :card-last-4 :card-brand
-                :expires-month :expires-year :created-at]
+      {:select transaction-columns
        :from   :transactions
        :where  [:= :id id]})
     builder))
 
-(defn find-transaction-by-user-id [ds id]
-  (jdbc/execute-one!
-    ds
-    (sql/format
-      {:select [:id :user-id :card-holder :card-last-4 :card-brand
-                :expires-month :expires-year :created-at]
-       :from   :transactions
-       :where  [:= :user-id id]})
-    builder))
+(defn find-transactions-by-user-id [ds user-id]
+  (let [uuid (if (string? user-id)
+               (java.util.UUID/fromString user-id)
+               user-id)]
+    (jdbc/execute!
+      ds
+      (sql/format
+        {:select transaction-columns
+         :from   :transactions
+         :where  [:or [:= :from-user uuid] [:= :to-user uuid]]
+         :order-by [[:created-at :desc]]})
+      builder)))
 
-(defn create-transaction! [ds transactions]
+(defn create-transaction! [ds transaction-data]
   (jdbc/execute-one!
     ds
     (sql/format
       {:insert-into :transactions
-       :values [(select-keys transactions
-                             [:id :user-id :card-holder :card-last-4
-                              :card-hash :card-brand
-                              :expires-month :expires-year])]
-       :returning [:id :user-id :card-holder :card-last-4
-                   :card-brand :expires-month :expires-year :created-at]})
+       :values [(select-keys transaction-data [:from-user :to-user :amount :status])]
+       :returning transaction-columns})
     builder))
 
 (defn update-transaction! [ds id data]
-  (let [
-        valid-data (select-keys data [:card-holder :card-last-4 :card-brand
-                                      :expires-month :expires-year])
-
+  (let [valid-data (select-keys data [:amount :status])
         query (sql/format
                 {:update :transactions
                  :set    valid-data
                  :where  [:= :id id]
-                 :returning [:id :user-id :card-holder :card-last-4
-                             :card-brand :expires-month :expires-year :created-at]})]
-
+                 :returning transaction-columns})]
     (try
       (jdbc/execute-one! ds query builder)
       (catch Exception e
         (let [msg (ex-message e)]
-          (println "Erro detalhado no Update Bank Data:" msg)
-          (throw (ex-info "Falha ao atualizar dados bancários"
+          (println "Erro detalhado no Update Transaction:" msg)
+          (throw (ex-info "Falha ao atualizar transação"
                           {:cause msg :data valid-data})))))))
 
 (defn delete-transaction! [ds id]

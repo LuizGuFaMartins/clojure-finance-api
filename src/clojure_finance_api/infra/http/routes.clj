@@ -1,6 +1,7 @@
 (ns clojure-finance-api.infra.http.routes
   (:require [clojure-finance-api.shared.global-interceptors :as global-interceptors]
             [io.pedestal.http.route :as route]
+            [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.http.body-params :as body-params]
             [clojure-finance-api.infra.auth.jwt :as auth]
             [clojure-finance-api.infra.interceptors.user-interceptors :as user-i]
@@ -11,8 +12,23 @@
 
 (def compiled-gql (gql-core/compiled-schema))
 
-(defn graphql-chain [schema]
-  [lp/json-response-interceptor
+(def prepare-lacinia-context
+  (interceptor
+    {:name ::prepare-lacinia-context
+     :enter (fn [ctx]
+              (let [request (:request ctx)
+                    components (:components ctx)]
+                (assoc-in ctx [:request :lacinia-app-context]
+                          {:components components
+                           :request    request
+                           })))}))
+
+
+(defn- graphql-interceptors [schema]
+  [
+   prepare-lacinia-context
+   (lp/inject-app-context-interceptor nil)
+   lp/json-response-interceptor
    lp/error-response-interceptor
    lp/body-data-interceptor
    lp/graphql-data-interceptor
@@ -31,8 +47,7 @@
    ["/graphiql" :get [(lp/graphiql-ide-handler {})] :route-name :graphiql :public true]
 
    ;; A rota da API GraphQL herda a segurança JWT automaticamente (não é :public)
-   ["/graphql" :post [(body-params/body-params)
-                      (graphql-chain compiled-gql)] :route-name :graphql-api]
+   ["/graphql" :post (graphql-interceptors compiled-gql) :route-name :graphql-api]
 
    ;; --- Auth & Session ---
    ["/auth/me" :get [login-i/get-current-user] :route-name :auth-me]
