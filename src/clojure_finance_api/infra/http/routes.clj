@@ -25,8 +25,7 @@
 
 
 (defn- graphql-interceptors [schema]
-  [
-   prepare-lacinia-context
+  [prepare-lacinia-context
    (lp/inject-app-context-interceptor nil)
    lp/json-response-interceptor
    lp/error-response-interceptor
@@ -44,14 +43,14 @@
 
    ;; --- GraphQL & IDE ---
    ;; GraphiQL é público para facilitar o desenvolvimento/testes
-   ["/graphiql" :get [(lp/graphiql-ide-handler {})] :route-name :graphiql :public true]
+   ;["/graphiql" :get [(lp/graphiql-ide-handler {})] :route-name :graphiql :public true]
 
    ;; A rota da API GraphQL herda a segurança JWT automaticamente (não é :public)
    ["/graphql" :post (graphql-interceptors compiled-gql) :route-name :graphql-api]
 
    ;; --- Auth & Session ---
    ["/auth/me" :get [login-i/get-current-user] :route-name :auth-me]
-   ["/logout" :post [login-i/logout] :route-name :action-logout]
+   ["/logout" :post [login-i/logout] :route-name :action-logout :public true]
 
    ;; --- Users ---
    ["/users"     :get  [user-i/list-users-interceptor] :route-name :list-users :roles [:admin]]

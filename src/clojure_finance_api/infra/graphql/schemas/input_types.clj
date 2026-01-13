@@ -5,4 +5,4 @@
    {:fields
     {:to_user {:type '(non-null ID)}
      :amount  {:type '(non-null Float)}
-     :status  {:type 'String}}}})
+     }}})

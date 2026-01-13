@@ -15,7 +15,6 @@
 
 (defn compiled-schema []
   (-> (build-schema)
-      (attach-resolvers {:query/transaction-by-id res/transaction-by-id
-                         :query/my-transactions   res/my-transactions
+      (attach-resolvers {:query/my-transactions   res/my-transactions
                          :mutation/create-transaction res/create-transaction})
       schema/compile))

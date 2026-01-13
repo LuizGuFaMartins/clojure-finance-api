@@ -1,19 +1,30 @@
 (ns clojure-finance-api.infra.graphql.resolvers
-  (:require [clojure-finance-api.domain.repositories.transaction-repo :as repo]
-            [clojure-finance-api.infra.http.context-utils :as ctx-utils]))
+  (:require [clojure-finance-api.domain.services.transaction-service :as service]
+            [com.walmartlabs.lacinia.resolve :as lacinia]))
 
-(defn transaction-by-id [context args value]
-  (let [db (ctx-utils/get-db context)]
-    (repo/find-transaction-by-id db (:id args))))
+(defn resolve-error
+  [error-data]
+  (let [error-type (if (keyword? error-data) error-data (:error error-data))
+        message (case error-type
+                  :user-not-found       "Usuário não encontrado"
+                  :insufficient-funds   "Saldo insuficiente para realizar a operação"
+                  :invalid-amount       "O valor da transação é inválido"
+                  :self-transfer        "Operação não permitida entre mesma conta"
+                  :database-error       "Erro interno no processamento"
+                  "Ocorreu um erro inesperado na transação")]
+    (lacinia/resolve-as nil {:message message
+                             :type error-type})))
 
-(defn my-transactions [context args value]
-  (let [ctx (get-in context [:request :lacinia-app-context])
-        db (ctx-utils/get-db ctx)
-        user-id (:id (ctx-utils/get-identity ctx))]
-    (repo/find-transactions-by-user-id db user-id)))
+(defn my-transactions [context args _]
+  (let [ctx    (get-in context [:request :lacinia-app-context])
+        result (service/my-transactions ctx args)]
+    (if (:success result)
+      (:success result)
+      (resolve-error (:error result)))))
 
 (defn create-transaction [context args _]
-  (let [db (ctx-utils/get-db context)
-        from-id (get-in context [:request :identity :id])
-        input   (:input args)]
-    (repo/create-transaction! db (assoc input :from_user from-id))))
+  (let [ctx    (get-in context [:request :lacinia-app-context])
+        result (service/create-transaction ctx (:input args))]
+    (if (:success result)
+      (:success result)
+      (resolve-error (:error result)))))

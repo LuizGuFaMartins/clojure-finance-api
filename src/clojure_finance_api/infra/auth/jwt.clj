@@ -54,22 +54,16 @@
    {:name ::auth-interceptor
     :enter
     (fn [ctx]
-      (let [method (get-in ctx [:request :request-method])]
-
-        (cond
-          (= method :options) ctx
-
-          :else
-          (let [token (extract-token ctx)]
-            (if (str/blank? token)
-              (auth-error ctx 401 "Token missing")
-              (try
-                (let [claims (verify-token ctx token)]
-                  (if (= (:type claims) "access")
-                    (assoc-in ctx [:request :identity] claims)
-                    (auth-error ctx 401 "Invalid token type")))
-                (catch Exception _
-                  (auth-error ctx 401 "Invalid or expired token"))))))))}))
+      (let [token (extract-token ctx)]
+        (if (str/blank? token)
+          (auth-error ctx 401 "Token missing")
+          (try
+            (let [claims (verify-token ctx token)]
+              (if (= (:type claims) "access")
+                (assoc-in ctx [:request :identity] claims)
+                (auth-error ctx 401 "Invalid token type")))
+            (catch Exception _
+              (auth-error ctx 401 "Invalid or expired token"))))))}))
 
 (defn authorize-roles
   [allowed-roles]

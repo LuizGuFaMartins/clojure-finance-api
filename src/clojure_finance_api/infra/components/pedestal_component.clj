@@ -24,7 +24,8 @@
                  server (-> service-map
                             http/default-interceptors
                             (update ::http/interceptors (fn [stack]
-                                                          (into [cors-interceptor
+                                                          (into [
+                                                                 cors-interceptor
                                                                  interceptors/cookies-interceptor
                                                                  interceptors/content-negotiation-interceptor
                                                                  (interceptors/inject-components component)]
