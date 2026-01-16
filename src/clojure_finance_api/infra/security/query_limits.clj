@@ -1,8 +1,8 @@
 (ns clojure-finance-api.infra.security.query-limits
   (:require [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.interceptor.chain :as chain]
-            [com.walmartlabs.lacinia.constants :as constants]
-            [com.walmartlabs.lacinia.selection :as sel]))
+            [com.walmartlabs.lacinia.executor :as executor]
+            [com.walmartlabs.lacinia.selection :as selection]))
 
 (defn- calculate-depth
   [selection-set]
@@ -30,20 +30,51 @@
                       chain/terminate)
                   ctx)))}))
 
-(defn max-complexity-interceptor [limit]
+
+(defn calculate-complexity
+  [selection-set]
+  (let [
+        description (executor/selection selection-set)
+        field-def   (:field-definition description)
+        base-complexity (or (:complexity field-def) 1)
+        sub-selections (selection/selections selection-set)]
+    (if (empty? sub-selections)
+      base-complexity
+      (+ base-complexity (reduce + (map #(calculate-complexity %) sub-selections))))))
+
+(defn max-complexity-interceptor [schema limit]
   (interceptor
     {:name ::max-complexity
      :enter (fn [ctx]
               (let [
-                    prepared-query (get-in ctx [:request constants/parsed-query-key])
-                    actual-complexity (.getComplexity prepared-query)]
+                    schemas schema
+                    prepared-query (get-in ctx [:request :parsed-lacinia-query])
+                    root-selections (:selections prepared-query)
+                    complexity 10]
 
-                (if (> actual-complexity limit)
+                (if (> complexity limit)
                   (-> ctx
                       (assoc :response
                              {:status 400
-                              :body {:errors [{:message "Query muito complexa."
-                                               :extensions {:cost actual-complexity
+                              :body {:errors [{:message "Query with very high cost."
+                                               :extensions {:cost complexity
                                                             :limit limit}}]}})
                       chain/terminate)
                   ctx)))}))
+
+;(defn secure-query-executor-handler [schema complexity-limit depth-limit]
+;  (interceptor
+;    {:name ::secure-executor
+;     :enter (fn [ctx]
+;              (let [{:keys [graphql-query graphql-vars lacinia-app-context]} (:request ctx)
+;                    options {:max-complexity complexity-limit :max-depth depth-limit}
+;                    result (lacinia/execute
+;                             schema
+;                             graphql-query
+;                             graphql-vars
+;                             lacinia-app-context
+;                             options)]
+;                (assoc ctx :response {:status 200 :body result})))}))
+
+
+

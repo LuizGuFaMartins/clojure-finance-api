@@ -35,8 +35,10 @@
    (lp/query-parser-interceptor schema)
    lp/prepare-query-interceptor
    (query-limits/max-depth-interceptor 5)
-   ;(query-limits/max-complexity-interceptor 100)
-   lp/query-executor-handler])
+   ;(query-limits/max-complexity-interceptor schema 100)
+   ;(query-limits/secure-query-executor-handler schema 300 1)
+   lp/query-executor-handler
+   ])
 
 (def raw-routes
   [
