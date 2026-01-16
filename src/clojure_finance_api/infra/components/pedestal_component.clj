@@ -4,6 +4,7 @@
     [io.pedestal.http :as http]
     [clojure-finance-api.shared.global-interceptors :as interceptors]
     [clojure-finance-api.infra.http.routes :refer [routes]]
+    [clojure-finance-api.infra.security.rate-limit :as rate-limit]
     [io.pedestal.http.cors :as cors]))
 
 (defrecord PedestalComponent [config datasource auth]
@@ -28,6 +29,7 @@
                                                                  cors-interceptor
                                                                  interceptors/cookies-interceptor
                                                                  interceptors/content-negotiation-interceptor
+                                                                 rate-limit/rate-limit-interceptor
                                                                  (interceptors/inject-components component)]
                                                                 stack)))
                             http/create-server

@@ -1,8 +1,8 @@
 (ns clojure-finance-api.domain.services.login-service
   (:require
     [clojure-finance-api.domain.services.user-service :as user-service]
-    [clojure-finance-api.infra.auth.jwt :as auth]
-    [clojure-finance-api.infra.auth.hash :as hash-util]))
+    [clojure-finance-api.infra.security.jwt :as jwt]
+    [clojure-finance-api.infra.security.hash :as hash]))
 
 (defn authenticate
   [ctx {:keys [email password]}]
@@ -12,14 +12,14 @@
       (nil? user)
       {:error :user-not-found}
 
-      (not (hash-util/check-password password (:password user)))
+      (not (hash/check-password password (:password user)))
       {:error :invalid-password}
 
       (not (:active user))
       {:error :user-inactive}
 
       :else
-      (let [token (auth/create-token ctx user)
+      (let [token (jwt/create-token ctx user)
             user-data (dissoc user :password)]
         {:success {:access-token token
                    :user user-data}}))))

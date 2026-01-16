@@ -1,9 +1,10 @@
 (ns clojure-finance-api.infra.http.routes
-  (:require [clojure-finance-api.shared.global-interceptors :as global-interceptors]
-            [io.pedestal.http.route :as route]
+  (:require [io.pedestal.http.route :as route]
             [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.http.body-params :as body-params]
-            [clojure-finance-api.infra.auth.jwt :as auth]
+            [clojure-finance-api.infra.security.rls :as rls]
+            [clojure-finance-api.infra.security.jwt :as jwt]
+            [clojure-finance-api.infra.security.query-limits :as query-limits]
             [clojure-finance-api.infra.interceptors.user-interceptors :as user-i]
             [clojure-finance-api.infra.interceptors.login-interceptors :as login-i]
             [clojure-finance-api.infra.interceptors.bank-data-interceptors :as bank-i]
@@ -23,10 +24,8 @@
                            :request    request
                            })))}))
 
-
 (defn- graphql-interceptors [schema]
   [prepare-lacinia-context
-   (lp/inject-app-context-interceptor nil)
    lp/json-response-interceptor
    lp/error-response-interceptor
    lp/body-data-interceptor
@@ -35,18 +34,17 @@
    lp/missing-query-interceptor
    (lp/query-parser-interceptor schema)
    lp/prepare-query-interceptor
+   (query-limits/max-depth-interceptor 5)
+   ;(query-limits/max-complexity-interceptor 100)
    lp/query-executor-handler])
 
 (def raw-routes
-  [;; --- Login & Public ---
-   ["/login" :post [(body-params/body-params) login-i/login] :route-name :action-login :public true]
-
-   ;; --- GraphQL & IDE ---
-   ;; GraphiQL é público para facilitar o desenvolvimento/testes
-   ;["/graphiql" :get [(lp/graphiql-ide-handler {})] :route-name :graphiql :public true]
-
-   ;; A rota da API GraphQL herda a segurança JWT automaticamente (não é :public)
+  [
+   ;; GraphQL
    ["/graphql" :post (graphql-interceptors compiled-gql) :route-name :graphql-api]
+
+   ;; --- Login & Public ---
+   ["/login" :post [(body-params/body-params) login-i/login] :route-name :action-login :public true]
 
    ;; --- Auth & Session ---
    ["/auth/me" :get [login-i/get-current-user] :route-name :auth-me]
@@ -83,10 +81,10 @@
                 interceptors
 
                 :else
-                (let [base-chain [auth/auth-interceptor]]
+                (let [base-chain [jwt/auth-interceptor]]
                   (-> base-chain
-                      (cond-> roles (conj (auth/authorize-roles roles)))
-                      (cond-> rls? (conj global-interceptors/rls-interceptor))
+                      (cond-> roles (conj (jwt/authorize-roles roles)))
+                      (cond-> rls? (conj rls/rls-interceptor))
                       (into interceptors))))
             ]
 

@@ -1,4 +1,4 @@
-(ns clojure-finance-api.infra.auth.jwt
+(ns clojure-finance-api.infra.security.jwt
   (:require [buddy.sign.jwt :as jwt]
             [clojure.string :as str]
             [clojure-finance-api.infra.http.response :refer [response-error]]

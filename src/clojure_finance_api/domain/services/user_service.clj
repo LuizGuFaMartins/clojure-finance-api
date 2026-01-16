@@ -1,7 +1,7 @@
 (ns clojure-finance-api.domain.services.user-service
   (:require
     [clojure-finance-api.domain.repositories.user-repo :as repo]
-    [clojure-finance-api.infra.auth.hash :as hash-util]
+    [clojure-finance-api.infra.security.hash :as hash-util]
     [clojure-finance-api.infra.http.context-utils :as ctx-utils]))
 
 (defn list-users

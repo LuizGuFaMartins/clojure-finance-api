@@ -4,7 +4,7 @@
 (def transaction-types
   {:User
    {:fields
-    {:id    {:type '(non-null ID)}
+    {:id    {:type '(non-null ID) :complexity 20}
      :name {:type '(non-null String)}
      :email {:type '(non-null String)}}}
 
@@ -24,4 +24,4 @@
                   :resolve (fn [_ _ row]
                              {:id (:to_user_id row)
                               :name (:to_user_name row)
-                              :email (:to_user_email row)})}}}})
+                              :email (:to_user_email row)})} }}})

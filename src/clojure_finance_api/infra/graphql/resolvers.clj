@@ -15,16 +15,14 @@
     (lacinia/resolve-as nil {:message message
                              :type error-type})))
 
-(defn my-transactions [context args _]
-  (let [ctx    (get-in context [:request :lacinia-app-context])
-        result (service/my-transactions ctx args)]
+(defn my-transactions [ctx args _]
+  (let [result (service/my-transactions ctx args)]
     (if (:success result)
       (:success result)
       (resolve-error (:error result)))))
 
-(defn create-transaction [context args _]
-  (let [ctx    (get-in context [:request :lacinia-app-context])
-        result (service/create-transaction ctx (:input args))]
+(defn create-transaction [ctx args _]
+  (let [result (service/create-transaction ctx (:input args))]
     (if (:success result)
       (:success result)
       (resolve-error (:error result)))))

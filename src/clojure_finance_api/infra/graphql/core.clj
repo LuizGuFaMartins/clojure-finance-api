@@ -17,4 +17,4 @@
   (-> (build-schema)
       (attach-resolvers {:query/my-transactions   res/my-transactions
                          :mutation/create-transaction res/create-transaction})
-      schema/compile))
+      (schema/compile {:enable-introspection? false})))
