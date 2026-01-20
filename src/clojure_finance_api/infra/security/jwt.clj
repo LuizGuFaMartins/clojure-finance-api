@@ -18,11 +18,8 @@
 (defn- get-auth-component [ctx]
   (get-in ctx [:components :auth]))
 
-(defn- get-private-key [ctx]
-  (:private-key (get-auth-component ctx)))
-
-(defn- get-public-key [ctx]
-  (:public-key (get-auth-component ctx)))
+(defn- get-public-key [ctx kid]
+  (get-in (get-auth-component ctx) [:public-keys kid]))
 
 (defn- extract-token [ctx]
   (let [auth-header (get-in ctx [:request :headers "authorization"])
@@ -33,21 +30,14 @@
                          (get-in cookies [:token :value]))]
     (or header-token cookie-token)))
 
-(defn create-token [ctx user]
-  (let [priv-key (get-private-key ctx)
-        now      (java.time.Instant/now)
-        payload  {:id   (str (:id user))
-                  :role (name (:role user))
-                  :iat  (.getEpochSecond now)
-                  :exp  (.getEpochSecond (.plus now 1 java.time.temporal.ChronoUnit/HOURS))
-                  :aud  "clojure-finance-api"
-                  :type "access"
-                  :jti  (str (java.util.UUID/randomUUID))}]
-    (jwt/sign payload priv-key {:alg :rs256})))
-
 (defn verify-token [ctx token]
-  (let [pub-key (get-public-key ctx)]
-    (jwt/unsign token pub-key {:alg :rs256 :aud "clojure-finance-api"})))
+  (let [
+        header (jwt/decode-header token)
+        kid    (:kid header)
+        pub-key (get-public-key ctx kid)]
+    (if pub-key
+      (jwt/unsign token pub-key {:alg :rs256 :aud "clojure-finance-api"})
+      (throw (ex-info "Public key (kid) not defined" {:kid kid})))))
 
 (def auth-interceptor
   (interceptor

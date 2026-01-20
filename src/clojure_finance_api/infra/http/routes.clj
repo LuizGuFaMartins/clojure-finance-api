@@ -6,7 +6,6 @@
             [clojure-finance-api.infra.security.jwt :as jwt]
             [clojure-finance-api.infra.security.query-limits :as query-limits]
             [clojure-finance-api.infra.interceptors.user-interceptors :as user-i]
-            [clojure-finance-api.infra.interceptors.login-interceptors :as login-i]
             [clojure-finance-api.infra.interceptors.bank-data-interceptors :as bank-i]
             [clojure-finance-api.infra.graphql.core :as gql-core]
             [com.walmartlabs.lacinia.pedestal2 :as lp]))
@@ -44,13 +43,6 @@
   [
    ;; GraphQL
    ["/graphql" :post (graphql-interceptors compiled-gql) :route-name :graphql-api]
-
-   ;; --- Login & Public ---
-   ["/login" :post [(body-params/body-params) login-i/login] :route-name :action-login :public true]
-
-   ;; --- Auth & Session ---
-   ["/auth/me" :get [login-i/get-current-user] :route-name :auth-me]
-   ["/logout" :post [login-i/logout] :route-name :action-logout :public true]
 
    ;; --- Users ---
    ["/users"     :get  [user-i/list-users-interceptor] :route-name :list-users :roles [:admin]]
@@ -95,7 +87,6 @@
             [path method auth-chain]
             (mapcat identity clean-opts)))))
     routes))
-
 
 (def routes
   (-> raw-routes
