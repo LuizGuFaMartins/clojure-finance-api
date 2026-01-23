@@ -55,6 +55,7 @@
             (catch Exception _
               (auth-error ctx 401 "Invalid or expired token"))))))}))
 
+
 (defn authorize-roles
   [allowed-roles]
   (interceptor
@@ -68,3 +69,13 @@
           (nil? identity) (authz-error ctx 401 "Unauthenticated")
           allowed?        ctx
           :else           (authz-error ctx 403 "Forbidden"))))}))
+
+
+(defn authorization-resolver [allowed-roles resolver-fn]
+  (fn [ctx args value]
+    (let [identity  (get-in ctx [:request :identity])
+          user-role (:role identity)
+          allowed?  (some #(= (name %) (name user-role)) allowed-roles)]
+      (if allowed?
+        (resolver-fn ctx args value)
+        (throw (ex-info "Forbidden" {:errors :unauthorized}))))))

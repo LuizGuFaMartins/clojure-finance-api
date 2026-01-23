@@ -13,6 +13,14 @@
         (println "Erro ao listar transações:" (.getMessage e))
         {:error :database-error}))))
 
+(defn all-transactions [ctx args]
+  (let [ds (ctx-utils/get-db ctx)]
+    (try
+      {:success (repo/find-transactions ds args)}
+      (catch Exception e
+        (println "Erro ao listar transações:" (.getMessage e))
+        {:error :database-error}))))
+
 (defn create-transaction [ctx input]
   (let [ds           (ctx-utils/get-db ctx)
         from-user-id (java.util.UUID/fromString (ctx-utils/get-user-id ctx))

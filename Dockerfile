@@ -9,3 +9,5 @@ COPY . .
 RUN clojure -X:uberjar
 
 CMD ["sh", "-c", "java -jar clj-app.jar"]
+
+

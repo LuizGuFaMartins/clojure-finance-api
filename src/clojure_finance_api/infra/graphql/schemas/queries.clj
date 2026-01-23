@@ -5,5 +5,11 @@
     {:type '(list :Transaction)
      :args {:days {:type :Int}
             :type   {:type :String}}
-     :resolve :query/my-transactions}}
+     :resolve :query/my-transactions}
+
+   :all_transactions
+   {:type '(list :Transaction)
+    :args {:days {:type :Int}
+           :type   {:type :String}}
+    :resolve :query/all-transactions}}
   )

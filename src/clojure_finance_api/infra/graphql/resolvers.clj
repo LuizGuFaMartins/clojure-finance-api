@@ -21,6 +21,12 @@
       (:success result)
       (resolve-error (:error result)))))
 
+(defn all-transactions [ctx args _]
+  (let [result (service/all-transactions ctx args)]
+    (if (:success result)
+      (:success result)
+      (resolve-error (:error result)))))
+
 (defn create-transaction [ctx args _]
   (let [result (service/create-transaction ctx (:input args))]
     (if (:success result)

@@ -30,6 +30,24 @@
           :order-by [[:t.created_at :desc]]})
        builder)))
 
+(defn find-transactions [ds filters]
+  (let [{:keys [days page size]} filters
+        limit  (or size 10)
+        offset (* (dec (or page 1)) limit)]
+    (jdbc/execute! ds
+                   (sql/format
+                     {:select transaction-columns
+                      :from   [[:transactions :t]]
+                      :join   [[:users :f] [:= :t.from_user :f.id]
+                               [:users :r] [:= :t.to_user :r.id]]
+                      :where  [:and
+                               (when days
+                                 [:>= :t.created_at [:raw (str "now() - interval '" days " days'")]])]
+                      :order-by [[:t.created_at :desc]]
+                      :limit  limit
+                      :offset offset})
+                   builder)))
+
 (defn create-transaction! [ds {:keys [from-user-id to-user-id amount]}]
   (let [amt (bigdec amount)]
     (jdbc/with-transaction [tx ds]
