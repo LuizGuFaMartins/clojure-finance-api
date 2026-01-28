@@ -1,11 +1,21 @@
 (ns clojure-finance-api.infra.components.pedestal-component
   (:require
+    [clojure.string :as str]
     [com.stuartsierra.component :as component]
     [io.pedestal.http :as http]
     [clojure-finance-api.shared.global-interceptors :as interceptors]
     [clojure-finance-api.infra.http.routes :refer [routes]]
     [clojure-finance-api.infra.security.rate-limit :as rate-limit]
     [io.pedestal.http.cors :as cors]))
+
+(defn- parse-origins
+  [origins]
+  (cond
+    (vector? origins) origins
+    (string? origins) (-> origins
+                          (str/replace #"[\"\[\]]" "")
+                          (str/split #","))
+    :else ["http://localhost:3000"]))
 
 (defrecord PedestalComponent [config datasource auth]
   component/Lifecycle
@@ -19,6 +29,7 @@
           service-map {::http/router     :linear-search
                        ::http/routes     routes
                        ::http/type       :jetty
+                       ::http/host       "0.0.0.0"
                        ::http/join?      false
                        ::http/port       port
                        ::http/components {:datasource datasource
@@ -26,7 +37,7 @@
                                           :config     config}}
 
           cors-interceptor (cors/allow-origin {:creds           true
-                                               :allowed-origins origins})
+                                               :allowed-origins (parse-origins origins)})
 
           server (-> service-map
                      http/default-interceptors

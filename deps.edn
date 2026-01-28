@@ -46,11 +46,10 @@
    :jvm-opts    ["-Dcom.github.dockerjava.api.version=1.44"]
    :main-opts   ["-m" "kaocha.runner"]}
 
-  ;; --- Testes no Editor (REPL + Testcontainers) ---
-  :test-env
-  {:extra-paths ["test"]
-   :extra-deps  {clj-test-containers/clj-test-containers {:mvn/version "0.7.4"}
-                 org.testcontainers/testcontainers       {:mvn/version "1.20.4"}
-                 org.testcontainers/postgresql           {:mvn/version "1.20.4"}
-                 com.github.docker-java/docker-java-transport-zerodep {:mvn/version "3.4.0"}}
-   :jvm-opts    ["-Dcom.github.dockerjava.api.version=1.44"]}}}
+  :build
+  {:deps {io.github.clojure/tools.build {:mvn/version "0.9.6"}}
+   :ns-default build}
+
+  ;:build {:deps       {io.github.clojure/tools.build {:git/tag "v0.8.1" :git/sha "7d40500"}}
+  ;        :ns-default build}
+  }}

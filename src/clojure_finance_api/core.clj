@@ -5,7 +5,8 @@
     [clojure-finance-api.infra.components.pedestal-component :as pedestal-component]
     [clojure-finance-api.config :as config]
     [next.jdbc.result-set :as rs]
-    [com.stuartsierra.component :as component]))
+    [com.stuartsierra.component :as component])
+  (:gen-class))
 
 (extend-protocol rs/ReadableColumn
   java.util.UUID

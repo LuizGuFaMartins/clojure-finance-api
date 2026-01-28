@@ -1,7 +1,7 @@
 #profile {
           :dev {
                 :server {:port #long #or [#env SERVER_PORT 8080]
-                         :allowed-origins #or [#env ALLOWED_ORIGINS ["http://localhost:3000" "http://127.0.0.1:3000"]]
+                         :allowed-origins #or [#env ALLOWED_ORIGINS "http://localhost:3000,http://127.0.0.1:3000"]
                          :rate-limit {:requests #long #or [#env RL_REQUESTS 100]
                                       :window-ms #long #or [#env RL_WINDOW 60000]}}
                 :auth {
@@ -12,7 +12,11 @@
                                 :same-site #keyword #or [#env COOKIE_SAME_SITE "lax"]
                                 :domain    #or [#env COOKIE_DOMAIN nil]}}
 
-                :db {:url #or [#env POSTGRES_URL "jdbc:postgresql://localhost:5432/finance_db?user=finance_app_runtime&password=finance_pass"]}
+                :db {:host     #or [#env POSTGRES_HOST "localhost"]
+                     :port     #long #or [#env POSTGRES_PORT 5432]
+                     :dbname   #or [#env POSTGRES_DB "finance_db"]
+                     :user     #or [#env POSTGRES_USER "finance_app_runtime"]
+                     :password #or [#env POSTGRES_PASSWORD "finance_pass"]}
                 }
 
           :homol {
@@ -27,7 +31,12 @@
                                   :same-site #keyword #or [#env COOKIE_SAME_SITE "lax"]
                                   :domain    #or [#env COOKIE_DOMAIN nil]}}
 
-                  :db {:url #or [#env POSTGRES_URL]}
+                  :db {:host     #env POSTGRES_HOST
+                       :port     #long #or [#env POSTGRES_PORT 5432]
+                       :dbname   #env POSTGRES_DB
+                       :user     #env POSTGRES_USER
+                       :password #env POSTGRES_PASSWORD
+                       }
                   }
 
           :prod {
@@ -42,6 +51,11 @@
                                  :same-site #keyword #or [#env COOKIE_SAME_SITE "lax"]
                                  :domain    #or [#env COOKIE_DOMAIN nil]}}
 
-                 :db {:url #or [#env POSTGRES_URL]}
+                 :db {:host     #env POSTGRES_HOST
+                      :port     #long #or [#env POSTGRES_PORT 5432]
+                      :dbname   #env POSTGRES_DB
+                      :user     #env POSTGRES_USER
+                      :password #env POSTGRES_PASSWORD
+                      }
                  }
           }

@@ -27,14 +27,6 @@
       {:success (dissoc user :password)}
       {:error :user-not-found})))
 
-(defn find-user-by-email-with-password
-  [ctx email]
-  (let [conn (ctx-utils/get-db ctx)
-        user (repo/find-user-by-email conn email)]
-    (if user
-      {:success user}
-      {:error :user-not-found})))
-
 (defn create-user
   [ctx body]
   (let [conn (ctx-utils/get-db ctx)]
