@@ -1,0 +1,34 @@
+(ns clojure-finance-api.infra.security.rate-limit
+  (:require [io.pedestal.interceptor :refer [interceptor]]
+            [io.pedestal.interceptor.chain :as chain]))
+
+(defonce ip-cache (atom {}))
+
+(def rate-limit-interceptor
+  (interceptor
+    {:name ::rate-limit
+     :enter (fn [ctx]
+              (let [config (get-in ctx [:request :config])
+                    rl-conf (:rate-limit (:server config))
+
+                    window (or (:window-ms rl-conf) 30000)
+                    limit  (or (:requests rl-conf) 100)
+
+                    ip (get-in ctx [:request :remote-addr] "unknown")
+                    now (System/currentTimeMillis)
+
+                    requests (filter #(> % (- now window)) (get @ip-cache ip []))
+                    new-requests (conj requests now)]
+
+                (swap! ip-cache assoc ip new-requests)
+
+                (if (> (count new-requests) limit)
+                  (do
+                    (println (str "Rate limit atingido para o IP: " ip))
+                    (-> ctx
+                        (assoc :response {:status 429
+                                          :headers {"Content-Type" "application/json"}
+                                          :body {:error "Too Many Requests"
+                                                 :message (str "Limite de " limit " requisições atingido.")}})
+                        chain/terminate))
+                  ctx)))}))

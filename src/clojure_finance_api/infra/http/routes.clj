@@ -1,17 +1,48 @@
 (ns clojure-finance-api.infra.http.routes
-  (:require [clojure-finance-api.shared.global-interceptors :as global-interceptors]
-            [io.pedestal.http.route :as route]
+  (:require [io.pedestal.http.route :as route]
+            [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.http.body-params :as body-params]
-            [clojure-finance-api.infra.auth.jwt :as auth]
+            [clojure-finance-api.infra.security.rls :as rls]
+            [clojure-finance-api.infra.security.jwt :as jwt]
+            [clojure-finance-api.infra.security.query-limits :as query-limits]
             [clojure-finance-api.infra.interceptors.user-interceptors :as user-i]
-            [clojure-finance-api.infra.interceptors.login-interceptors :as login-i]
-            [clojure-finance-api.infra.interceptors.bank-data-interceptors :as bank-i]))
+            [clojure-finance-api.infra.interceptors.bank-data-interceptors :as bank-i]
+            [clojure-finance-api.infra.graphql.core :as gql-core]
+            [com.walmartlabs.lacinia.pedestal2 :as lp]))
+
+(def compiled-gql (gql-core/compiled-schema))
+
+(def prepare-lacinia-context
+  (interceptor
+    {:name ::prepare-lacinia-context
+     :enter (fn [ctx]
+              (let [request (:request ctx)
+                    components (:components ctx)]
+                (assoc-in ctx [:request :lacinia-app-context]
+                          {:components components
+                           :request    request
+                           })))}))
+
+(defn- graphql-interceptors [schema]
+  [prepare-lacinia-context
+   lp/json-response-interceptor
+   lp/error-response-interceptor
+   lp/body-data-interceptor
+   lp/graphql-data-interceptor
+   lp/status-conversion-interceptor
+   lp/missing-query-interceptor
+   (lp/query-parser-interceptor schema)
+   lp/prepare-query-interceptor
+   (query-limits/max-depth-interceptor 5)
+   ;(query-limits/max-complexity-interceptor schema 100)
+   ;(query-limits/secure-query-executor-handler schema 300 1)
+   lp/query-executor-handler
+   ])
 
 (def raw-routes
-  [;; --- Login ---
-   ["/login" :post [(body-params/body-params) login-i/login] :route-name :action-login :public true]
-   ["/auth/me" :get [login-i/get-current-user] :route-name :auth-me]
-   ["/logout" :post [login-i/logout] :route-name :action-logout]
+  [
+   ;; GraphQL
+   ["/graphql" :post (graphql-interceptors compiled-gql) :route-name :graphql-api]
 
    ;; --- Users ---
    ["/users"     :get  [user-i/list-users-interceptor] :route-name :list-users :roles [:admin]]
@@ -44,10 +75,10 @@
                 interceptors
 
                 :else
-                (let [base-chain [auth/auth-interceptor]]
+                (let [base-chain [jwt/auth-interceptor]]
                   (-> base-chain
-                      (cond-> roles (conj (auth/authorize-roles roles)))
-                      (cond-> rls? (conj global-interceptors/rls-interceptor))
+                      (cond-> roles (conj (jwt/authorize-roles roles)))
+                      (cond-> rls? (conj rls/rls-interceptor))
                       (into interceptors))))
             ]
 
@@ -56,7 +87,6 @@
             [path method auth-chain]
             (mapcat identity clean-opts)))))
     routes))
-
 
 (def routes
   (-> raw-routes

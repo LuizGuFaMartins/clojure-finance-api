@@ -1,4 +1,4 @@
-(ns clojure-finance-api.infra.auth.hash
+(ns clojure-finance-api.infra.security.hash
   (:require [buddy.hashers :as hs]))
 
 (defn check-password

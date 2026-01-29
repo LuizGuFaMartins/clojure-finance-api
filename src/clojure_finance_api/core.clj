@@ -4,7 +4,18 @@
     [clojure-finance-api.infra.components.auth-component :as auth-component]
     [clojure-finance-api.infra.components.pedestal-component :as pedestal-component]
     [clojure-finance-api.config :as config]
-    [com.stuartsierra.component :as component]))
+    [next.jdbc.result-set :as rs]
+    [com.stuartsierra.component :as component])
+  (:gen-class))
+
+(extend-protocol rs/ReadableColumn
+  java.util.UUID
+  (read-column-by-label [v _] (str v))
+  (read-column-by-index [v _ _] (str v))
+
+  java.math.BigDecimal
+  (read-column-by-label [v _] (double v))
+  (read-column-by-index [v _ _] (double v)))
 
 (defn clojure-finance-api-system
   [config]

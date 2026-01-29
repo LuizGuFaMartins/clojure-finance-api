@@ -11,11 +11,16 @@
    :join [[:user_roles :ur] [:= :u.id :ur.user_id]
           [:roles :r] [:= :ur.role_id :r.id]]})
 
-(defn list-users [ds]
-  (jdbc/execute!
-    ds
-    (sql/format base-user-query)
-    builder))
+(defn list-users [ds & [{:keys [page size]}]]
+  (let [limit  (or size 20)
+        offset (* (dec (or page 1)) limit)
+        query  (assoc base-user-query
+                 :limit limit
+                 :offset offset)]
+    (jdbc/execute!
+      ds
+      (sql/format query)
+      builder)))
 
 (defn find-user-by-id [ds id]
   (jdbc/execute-one!
