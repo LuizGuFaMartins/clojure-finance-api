@@ -1,8 +1,8 @@
 (ns clojure-finance-api.domain.services.user-service
   (:require
-    [clojure-finance-api.domain.repositories.user-repo :as repo]
-    [clojure-finance-api.infra.security.hash :as hash-util]
-    [clojure-finance-api.infra.http.context-utils :as ctx-utils]))
+   [clojure-finance-api.domain.repositories.user-repo :as repo]
+   [clojure-finance-api.infra.security.hash :as hash-util]
+   [clojure-finance-api.infra.http.context-utils :as ctx-utils]))
 
 (defn list-users
   [ctx]
@@ -51,8 +51,8 @@
     (if-not user
       {:error :user-not-found}
       (let [payload (cond-> body
-                            (:password body) (update :password hash-util/hash-password)
-                            :always          (dissoc :id :created-at :email :role))]
+                      (:password body) (update :password hash-util/hash-password)
+                      :always          (dissoc :id :created-at :email :role))]
         (try
           (repo/update-user! conn id payload)
           {:success (dissoc (merge user payload) :password)}

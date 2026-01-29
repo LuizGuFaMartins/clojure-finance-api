@@ -1,9 +1,9 @@
 (ns clojure-finance-api.infra.components.datasource-component
   (:require
-    [com.stuartsierra.component :as component])
+   [com.stuartsierra.component :as component])
   (:import
-    (com.zaxxer.hikari HikariConfig HikariDataSource)
-    (org.flywaydb.core Flyway)))
+   (com.zaxxer.hikari HikariConfig HikariDataSource)
+   (org.flywaydb.core Flyway)))
 
 (defn- build-jdbc-url [{:keys [host port dbname]}]
   (format "jdbc:postgresql://%s:%s/%s"
@@ -34,9 +34,7 @@
               ;; Aborta queries que excederem o tempo (ex: 10000ms)
               (.addDataSourceProperty "options" (str "-c statement_timeout=" statement-timeout))
               (.addDataSourceProperty "cachePrepStmts" "true")
-              (.addDataSourceProperty "prepStmtCacheSize" "250")
-
-              )]
+              (.addDataSourceProperty "prepStmtCacheSize" "250"))]
     (HikariDataSource. cfg)))
 
 (defrecord DatasourceComponent [config datasource]
@@ -48,10 +46,12 @@
           jdbc-url  (build-jdbc-url db-config)
           user      (:user db-config)
           password  (:password db-config)
+          admin-user      (:admin-user db-config)
+          admin-password  (:admin-password db-config)
           ;; Timeout padrão de 15s para queries se não especificado
           s-timeout (or (:statement-timeout db-config) 15000)]
 
-      (run-flyway! jdbc-url user password)
+      (run-flyway! jdbc-url admin-user admin-password)
 
       (assoc this :datasource (hikari-datasource jdbc-url user password s-timeout))))
 

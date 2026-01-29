@@ -1,11 +1,8 @@
-#profile {
-          :dev {
-                :server {:port #long #or [#env SERVER_PORT 8080]
+#profile {:dev {:server {:port #long #or [#env SERVER_PORT 8080]
                          :allowed-origins #or [#env ALLOWED_ORIGINS "http://localhost:3000,http://127.0.0.1:3000"]
                          :rate-limit {:requests #long #or [#env RL_REQUESTS 100]
                                       :window-ms #long #or [#env RL_WINDOW 60000]}}
-                :auth {
-                       :auth-server #or [#env AUTH_SERVER "http://localhost:8083"]
+                :auth {:auth-server #or [#env AUTH_SERVER "http://localhost:8083"]
                        :auth-jwks-url #or [#env AUTH_JWKS_URL "http://localhost:8083/.well-known/jwks.json"]
                        :cookie {:http-only true
                                 :secure    #boolean #or [#env COOKIE_SECURE false]
@@ -15,18 +12,18 @@
                 :db {:host     #or [#env POSTGRES_HOST "localhost"]
                      :port     #long #or [#env POSTGRES_PORT 5432]
                      :dbname   #or [#env POSTGRES_DB "finance_db"]
-                     :user     #or [#env POSTGRES_USER "finance_app_runtime"]
-                     :password #or [#env POSTGRES_PASSWORD "finance_pass"]}
-                }
+                     :user     #or [#env POSTGRES_USER "finance_app_user"]                     
+                     :password #or [#env POSTGRES_PASSWORD "finance_pass"]
+                     :admin-user     #or [#env ADMIN_POSTGRES_USER "finance_user"]
+                     :admin-password #or [#env ADMIN_POSTGRES_PASSWORD "finance_pass"]
+                     }}
 
-          :homol {
-                  :server {:port #long #or [#env SERVER_PORT 8080]
+          :homol {:server {:port #long #or [#env SERVER_PORT 8080]
                            :allowed-origins #or [#env ALLOWED_ORIGINS]
                            :rate-limit {:requests #long #or [#env RL_REQUESTS 100]
                                         :window-ms #long #or [#env RL_WINDOW 60000]}}
 
-                  :auth {
-                         :cookie {:http-only true
+                  :auth {:cookie {:http-only true
                                   :secure    #boolean #or [#env COOKIE_SECURE false]
                                   :same-site #keyword #or [#env COOKIE_SAME_SITE "lax"]
                                   :domain    #or [#env COOKIE_DOMAIN nil]}}
@@ -35,18 +32,14 @@
                        :port     #long #or [#env POSTGRES_PORT 5432]
                        :dbname   #env POSTGRES_DB
                        :user     #env POSTGRES_USER
-                       :password #env POSTGRES_PASSWORD
-                       }
-                  }
+                       :password #env POSTGRES_PASSWORD}}
 
-          :prod {
-                 :server {:port #long #or [#env SERVER_PORT 8080]
+          :prod {:server {:port #long #or [#env SERVER_PORT 8080]
                           :allowed-origins #or [#env ALLOWED_ORIGINS]
                           :rate-limit {:requests #long #or [#env RL_REQUESTS 100]
                                        :window-ms #long #or [#env RL_WINDOW 60000]}}
 
-                 :auth {
-                        :cookie {:http-only true
+                 :auth {:cookie {:http-only true
                                  :secure    #boolean #or [#env COOKIE_SECURE false]
                                  :same-site #keyword #or [#env COOKIE_SAME_SITE "lax"]
                                  :domain    #or [#env COOKIE_DOMAIN nil]}}
@@ -55,7 +48,4 @@
                       :port     #long #or [#env POSTGRES_PORT 5432]
                       :dbname   #env POSTGRES_DB
                       :user     #env POSTGRES_USER
-                      :password #env POSTGRES_PASSWORD
-                      }
-                 }
-          }
+                      :password #env POSTGRES_PASSWORD}}}
