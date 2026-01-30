@@ -15,7 +15,7 @@ CREATE TABLE bank_data (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   card_holder TEXT NULL,
-  card_last4 CHAR(4) NULL,
+  card_last_4 CHAR(4) NULL,
   card_hash TEXT NULL,
   card_brand TEXT NULL,
   expires_month INT NULL CHECK (expires_month BETWEEN 1 AND 12),

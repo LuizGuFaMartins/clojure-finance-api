@@ -39,24 +39,37 @@
     builder))
 
 (defn create-user! [ds user]
+  (jdbc/with-transaction [tx ds]
    (let [inserted-user (jdbc/execute-one!
-                         ds
+                         tx
                          (sql/format
                            {:insert-into :users
                             :values [(select-keys user [:id :name :email :password :cpf :phone])]
                             :returning [:*]})
                          builder)
-         role-id (jdbc/execute-one!
-                   ds
-                   (sql/format {:select [:id] :from :roles :where [:= :name (or (:role user) "customer")]})
-                   builder)]
-     (jdbc/execute!
-       ds
-       (sql/format
-         {:insert-into :user_roles
-          :values [{:user_id (:id inserted-user) :role_id (:id role-id)}]})
-       builder)
-     (assoc inserted-user :role (or (:role user) "customer"))))
+
+         role-name (or (:role user) "customer")
+
+         role-id-map (jdbc/execute-one!
+                       tx
+                       (sql/format {:select [:id]
+                                    :from :roles
+                                    :where [:= :name role-name]})
+                       builder)]
+
+     (if-not role-id-map
+       (throw (ex-info "Role not found" {:role role-name}))
+
+       (do
+         (jdbc/execute!
+           tx
+           (sql/format
+             {:insert-into :user_roles
+              :values [{:user_id [:cast (:id inserted-user) :uuid]
+                        :role_id (:id role-id-map) }]})
+           builder)
+
+         (assoc inserted-user :role role-name))))))
 
 (defn update-user! [ds id data]
   (jdbc/execute-one!
